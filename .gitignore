@@ -163,7 +163,7 @@ cython_debug/
 wandb/
 
 # Trained model files
-models/
+*.h5
 
 # Databases
-db/
+*.csv

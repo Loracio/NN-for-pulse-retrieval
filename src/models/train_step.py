@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-def train_step_MLP(x, y, model, optimizer, learning_rate, loss_fn, train_acc_metric):
+def train_step_MLP(x, y, model, optimizer, loss_fn, train_acc_metric):
     """
     Example training step for a MLP model.
 
@@ -9,7 +9,6 @@ def train_step_MLP(x, y, model, optimizer, learning_rate, loss_fn, train_acc_met
         y (tf.Tensor): Target data
         model (tf.keras.Model): Model to train
         optimizer (tf.keras.optimizers.Optimizer): Optimizer to use
-        learning_rate (float): Learning rate to use
         loss_fn (tf.keras.losses.Loss): Loss function to use
         train_acc_metric (tf.keras.metrics.Metric): Metric to use for training accuracy
 

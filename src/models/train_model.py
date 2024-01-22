@@ -1,8 +1,27 @@
 import tensorflow as tf
-from .train_step import train_step
-from .test_step import test_step
+import numpy as np
+import wandb
+from .train_step import train_step_MLP
+from .test_step import test_step_MLP
 
-def train_MLP(train_dataset, test_dataset, model, optimizer, learning_rate, loss_fn, train_acc_metric, test_acc_metric, epochs=EPOCHS, log_step=LOG_STEP, val_log_step=VAL_LOG_STEP, patience=10):
+def train_MLP(train_dataset, test_dataset, model, optimizer, loss_fn, train_acc_metric, test_acc_metric, epochs, log_step, val_log_step, patience):
+    """
+    Trainin step for a MLP model. Updates the weights of the model using the gradients computed by the loss function.
+    Saves the training and validation loss and accuracy in wandb.
+
+    Args:
+        train_dataset (tf.data.Dataset): Training dataset.
+        test_dataset (tf.data.Dataset): Test dataset.
+        model (tf.keras.Model): Model to train.
+        optimizer (tf.keras.optimizers): Optimizer to use.
+        loss_fn (tf.keras.losses): Loss function to use.
+        train_acc_metric (tf.keras.metrics): Training accuracy metric.
+        test_acc_metric (tf.keras.metrics): Test accuracy metric.
+        epochs (int): Number of epochs to train.
+        log_step (int): Number of steps to log training metrics.
+        val_log_step (int): Number of steps to log validation metrics.
+        patience (int): Number of epochs to wait for improvement in validation loss before early stopping.
+    """
     best_val_loss = float('inf')
     patience_counter = 0
 
@@ -15,7 +34,7 @@ def train_MLP(train_dataset, test_dataset, model, optimizer, learning_rate, loss
         # Iterate over the batches of the dataset
         for step, (x_batch_train, y_batch_train) in enumerate(train_dataset):
             loss_value = train_step_MLP(x_batch_train, y_batch_train,
-                                    model, optimizer, learning_rate,
+                                    model, optimizer,
                                     loss_fn, train_acc_metric)
             average_loss_value = tf.reduce_mean(loss_value)
             train_loss.append(float(average_loss_value))
@@ -53,8 +72,8 @@ def train_MLP(train_dataset, test_dataset, model, optimizer, learning_rate, loss
 
         # log metrics using wandb.log
         wandb.log({'epochs': epoch,
-                   'loss': np.mean(train_loss),
-                   'acc': float(train_acc),
+                   'train_loss': np.mean(train_loss),
+                   'train_acc': float(train_acc),
                    'test_loss': np.mean(val_loss),
                    'test_acc': float(test_acc)
                    })

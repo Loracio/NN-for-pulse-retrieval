@@ -18,13 +18,12 @@ import path_helper
 from src.io import load_and_norm_data, process_data
 from src.models import MLP, train_MLP
 
+import gc
+
 
 def sweep_MLP():
     # Initialize Weights & Biases run
     run = wandb.init(config=sweep_config)
-
-    # Load dataset
-    pulse_dataset = load_and_norm_data(FILE_PATH, N, NUMBER_OF_PULSES)
 
     # Process data
     train_dataset, test_dataset = process_data(
@@ -66,16 +65,19 @@ if __name__ == "__main__":
         print("File not found. Please generate the pulse database first.")
         exit()
 
+    # Load dataset
+    pulse_dataset = load_and_norm_data(FILE_PATH, N, NUMBER_OF_PULSES)
+
     # Define config parameters for wandb
     sweep_config = {
-            'method': 'random',
+            'method': 'bayes',
             'metric': {
                 'name': 'val_loss',
                 'goal': 'minimize'
             },
             'parameters': {
                 'epochs': {
-                    'values': [25]
+                    'values': [50]
                 },
                 'batch_size': {
                     'values': [16, 32, 64, 128, 256]
@@ -123,7 +125,7 @@ if __name__ == "__main__":
                     'values': [(int(2 * N))]
                 },
                 'loss': {
-                    'values': ['mse']
+                    'values': ['mse', 'mae', 'log_cosh']
                 },
                 'train_metrics': {
                     'values': ['MeanSquaredError']
@@ -136,5 +138,17 @@ if __name__ == "__main__":
         }
 
     # Initialize Weights & Biases sweep with the config parameters
-    sweep_id = wandb.sweep(sweep_config, project="MLP_example")
-    wandb.agent(sweep_id, function=sweep_MLP, count=50)
+    sweep_id = wandb.sweep(sweep_config, project="Bayes_sweep_MLP")
+
+    # Memory cleanup code. This is necessary because between runs, TensorFlow does not release GPU and the memory is not freed.
+    def sweep_MLP_with_cleanup():
+        try:
+            # Run the sweep
+            sweep_MLP()
+        finally:
+            # Cleanup code
+            tf.keras.backend.clear_session()  # Clear the TensorFlow session
+            gc.collect()  # Force garbage collector to release unreferenced memory
+
+
+    wandb.agent(sweep_id, function=sweep_MLP_with_cleanup, count=50)

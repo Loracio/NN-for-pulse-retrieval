@@ -91,9 +91,18 @@ def load_and_norm_data(FILE_PATH, N, NUMBER_OF_PULSES):
 
         # Save the pulse in the target_dataset and normalize
         pulse_real = tf.reshape(pulse[1:N + 1], (1, N))
-        normalize_pulse_real = pulse_real / tf.reduce_max(tf.abs(pulse_real))
         pulse_imag = tf.reshape(pulse[N + 1:2*N + 1], (1, N))
-        normalize_pulse_imag = pulse_imag / tf.reduce_max(tf.abs(pulse_imag))
+
+        # Combine real and imaginary parts into complex numbers
+        pulse_complex = tf.complex(pulse_real, pulse_imag)
+
+        # Find the maximum absolute value (module) of the complex numbers
+        max_module = tf.reduce_max(tf.abs(pulse_complex))
+
+        # Normalize the real and imaginary parts by the maximum module
+        normalize_pulse_real = pulse_real / max_module
+        normalize_pulse_imag = pulse_imag / max_module
+
         normalized_pulse = tf.concat([normalize_pulse_real, normalize_pulse_imag], axis=1)
         target_dataset = target_dataset.concatenate(
             tf.data.Dataset.from_tensor_slices(normalized_pulse))

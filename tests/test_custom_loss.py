@@ -29,8 +29,6 @@ class TestCustomLoss(unittest.TestCase):
         # Print the value of the loss as a scalar
         print(f"Loss: {loss.numpy()}")
 
-        #! TODO: they do not match, check why. Probably phase factors when fft-ing
-
         # Check if the output is a tensor
         self.assertIsInstance(loss, tf.Tensor)
 

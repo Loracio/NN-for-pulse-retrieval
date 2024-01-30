@@ -34,15 +34,15 @@ if __name__ == "__main__":
     # Define config parameters for wandb
     config = {
         'epochs': 25,
-        'batch_size': 8,
+        'batch_size': 256,
         'log_step': 50,
         'val_log_step': 50,
-        'optimizer': 'sgd',
+        'optimizer': 'adam',
         'learning_rate': 0.001,
         'loss': 'mse',
         'train_metrics': 'MeanSquaredError',
         'val_metrics': 'MeanSquaredError',
-        'n_hidden_layers': 3,
+        'n_hidden_layers': 2,
         'n_neurons_per_layer': 3072,
         'activation': 'relu',
         'dropout': None,
@@ -90,4 +90,4 @@ if __name__ == "__main__":
     run.finish()
 
     # Save the model
-    # model.save(f"./trained_models/FCNN/{config['arquitecture']}_test1.h5")
+    # model.save(f"./trained_models/FCNN/{config['arquitecture']}_test2.h5")

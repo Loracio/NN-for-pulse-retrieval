@@ -138,7 +138,7 @@ if __name__ == "__main__":
         }
 
     # Initialize Weights & Biases sweep with the config parameters
-    sweep_id = wandb.sweep(sweep_config, project="Bayes_sweep_MLP")
+    sweep_id = wandb.sweep(sweep_config, project="Corrected data MLP sweep")
 
     # Memory cleanup code. This is necessary because between runs, TensorFlow does not release GPU and the memory is not freed.
     def sweep_MLP_with_cleanup():

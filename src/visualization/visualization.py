@@ -20,19 +20,17 @@ class resultsGUI():
         the SHG FROG trace of the input pulse followed by the SHG FROG trace of the output pulse,
         then a plot of the difference between the trace of the output pulse and the input pulse.
         Args:
-            t (np.array): Time vector.
-            Δt (float): Time step.
             N (int): Number of points in the input pulse.
             NUMBER_OF_PULSES (int): Number of pulses in the pulse database.
             FILE_PATH (str): Path to the pulse database.
             MODEL_PATH (str): Path to the model.
             conv (bool, optional): If True, the model is a CNN. Defaults to False.
         """
-
-        self.t = t
-        self.Δt = Δt
         self.N = N
         self.NUMBER_OF_PULSES = NUMBER_OF_PULSES
+
+        self.t = t
+        self.Δt = 1 / N
 
         self.frequencies = -1 / (2 * self.Δt) + np.arange(self.N) /(self.N * self.Δt)
         self.ω = self.frequencies *  2 * np.pi

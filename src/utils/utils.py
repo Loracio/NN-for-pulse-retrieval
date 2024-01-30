@@ -51,7 +51,7 @@ def DFT(E, Δt):
     Returns:
         Ẽ (np.array(complex)): Electric field of the pulse in the frequency domain
     """
-    N = t.size
+    N = E.size
     
     ω = -1 / (2 * Δt) + np.arange(N) /(N * Δt)
     ω *= 2 * np.pi
@@ -78,7 +78,7 @@ def IDFT(Ẽ, Δt):
     Returns:
         E (np.array(complex)): Electric field of the pulse in the time domain
     """
-    N = t.size
+    N = Ẽ.size
 
     ω = -1 / (2 * Δt) + np.arange(N) /(N * Δt)
     ω *= 2 * np.pi

@@ -14,7 +14,7 @@ An optical measurement that determines the electric field of the pulse to be mea
 
 We will not go into detail on how this experimental measure is carried out. The important thing to understand is that what is performed is an autocorrelation of the pulse with a delayed copy of itself, passing it through a second harmonic generation crystal which creates a signal proportional to the product of the two incident pulses. There are different experimental variations of this step, but the objective of all of them is finally to extract, by passing the resulting signal of the SHG crystal through a spectrometer, the SHG-FROG trace of the incident pulse, which has the following expression:
 
-$$\tilde{T}(\omega, \tau) = \left|\int_{-\infty}^{\infty} E(t) E(t - \tau) e^{i \omega t} \text{d} t \right|^2$$
+$$\tilde{T}(\omega, \tau) = |\int_{-\infty}^{\infty} E(t) E(t - \tau) e^{i \omega t} \text{d} t |^2$$
 
 This expression provides us with information in both the time and frequency domains. It tells us for each delay introduced to the pulse what is the spectrum obtained in the frequency domain. It is similar (but not the same) to a spectrogram in acoustics.
 
@@ -22,7 +22,7 @@ Note that if a temporal translation of the pulse is performed, it is conjugated 
 
 A mathematical manipulation can be performed on the above expression to transform it into a two-dimensional Fourier transform:
 
-$$\tilde{T}(\omega, \tau) = \left|\int_{-\infty}^{\infty}\int_{-\infty}^{\infty} \bar{E}_{sig}(t, \Omega) e^{-i \omega t - i \Omega \tau} \text{d} t \text{d} \Omega \right|^2$$
+$$\tilde{T}(\omega, \tau) = |\int_{-\infty}^{\infty}\int_{-\infty}^{\infty} \bar{E}_{sig}(t, \Omega) e^{-i \omega t - i \Omega \tau} \text{d} t \text{d} \Omega |^2$$
 
 Where $\bar{E}_{sig}(t, \Omega)$ is the Fourier transform with respect to $\tau$ of $E_{sig} = E(t) E(t - \tau)$, which is commonly referred to as the *signal operator*.
 

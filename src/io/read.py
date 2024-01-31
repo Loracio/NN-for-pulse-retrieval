@@ -4,7 +4,7 @@ This file contains the functions to read from the database of random pulses, and
 The database is a csv file with the following structure:
     TBP, E, Tmn
 where:
-    TBP: Time between pulses
+    TBP: Time bandwidth product of the pulse
     E: Pulse in the time domain real part, then imaginary part
     Tmn: SHG-FROG trace of the pulse
 

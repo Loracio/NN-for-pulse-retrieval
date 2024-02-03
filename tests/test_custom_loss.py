@@ -8,7 +8,6 @@ from src.io import load_and_norm_data, process_data
 
 class TestCustomLoss(unittest.TestCase):
     def test_custom_loss(self):
-        # Create some dummy data for testing
         N = 64
         NUMBER_OF_PULSES = 1000
         FILE_PATH = f"./data/generated/N{N}/{NUMBER_OF_PULSES}_randomPulses_N{N}.csv"

@@ -1,5 +1,5 @@
 """
-In this example, we will use Weights & Biases to log the training process of a MLP using a custom loss function.
+In this example, we will use Weights & Biases to log the training process of a CNN using a custom loss function.
 
 The Neural Network will try to predict the Electric field of a pulse in the time domain from its SHG-FROG trace.
 The input data is the SHG-FROG trace of the pulse (NxN vector), and the target data is the
@@ -19,7 +19,7 @@ from wandb.keras import WandbCallback
 import path_helper
 
 from src.io import load_and_norm_data, process_data
-from src.models import MLP, bottleneck_MLP, train_MLP_custom_loss, trace_loss
+from src.models import CNN, train_CNN_custom_loss, trace_loss
 
 from src.utils import compute_trace
 
@@ -38,8 +38,8 @@ if __name__ == "__main__":
 
     # Define config parameters for wandb
     config = {
-        'epochs': 25,
-        'batch_size': 256,
+        'epochs': 33,
+        'batch_size': 512,
         'log_step': 50,
         'val_log_step': 50,
         'optimizer': 'adam',
@@ -47,16 +47,23 @@ if __name__ == "__main__":
         'loss': 'trace_loss',
         'train_metrics': 'MeanSquaredError',
         'val_metrics': 'MeanSquaredError',
-        'n_hidden_layers': 4,
-        'n_neurons_per_layer': 2048,
-        'reduction_factor': 2,
-        'activation': 'elu',
-        'dropout': None,
-        'patience': 10,
-        'training_size': 0.75,
+        'n_conv_layers': 3, # Number of convolutional layers
+        'n_filters_per_layer': 64, # Number of filters per layer
+        'reduce_filter_factor': 2, # Reduction factor for the number of filters in each layer
+        'kernel_size': (3, 3), # Kernel size
+        'pool': True, # Use pooling layers
+        'pool_size': (2, 2), # Pool size
+        'conv_activation': 'relu', # Activation function for the convolutional layers
+        'n_dense_layers': 2, # Number of dense layers
+        'n_neurons_per_layer': 512, # Number of neurons per dense layer
+        'reduce_dense_factor': 2, # Reduction factor for the number of neurons in each layer in the dense layers
+        'dense_activation': 'relu', # Activation function for the dense layers
+        'dropout': 0.1, # Dropout rate, if None, no dropout is used
+        'patience': 5, # Patience for the early stopping
+        'training_size': 0.8,
         'database': f'{NUMBER_OF_PULSES}_randomPulses_N{N}',
-        'arquitecture': 'bottleneck_MLP',
-        'input_shape': (N, N),
+        'arquitecture': 'CNN',
+        'input_shape': (N, N, 1), # The number of channels is the last element of the input shape
         'output_shape': (int(2 * N)),
     }
 
@@ -67,16 +74,22 @@ if __name__ == "__main__":
 
     # Initialize Weights & Biases with the config parameters
     run = wandb.init(project="Custom loss tests", config=config,
-                     name='MLP custom trace tanh activation')
+                     name='CNN custom trace test #2')
 
     # Build the model with the config
-    if config['arquitecture'] == 'MLP':
-        model = MLP(config['input_shape'], config['output_shape'], config['n_hidden_layers'],
-                config['n_neurons_per_layer'], config['activation'], config['dropout'])
-
-    if config['arquitecture'] == 'bottleneck_MLP':
-        model = bottleneck_MLP(config['input_shape'], config['output_shape'], config['n_hidden_layers'],
-                           config['n_neurons_per_layer'], config['reduction_factor'], config['activation'], config['dropout'])
+    model = CNN(config['input_shape'], config['output_shape'],
+                n_conv_layers=config['n_conv_layers'],
+                n_filters_per_layer=config['n_filters_per_layer'],
+                reduce_filter_factor=config['reduce_filter_factor'],
+                kernel_size=config['kernel_size'],
+                pool=config['pool'],
+                pool_size=config['pool_size'],
+                conv_activation=config['conv_activation'],
+                n_dense_layers=config['n_dense_layers'],
+                n_neurons_per_layer=config['n_neurons_per_layer'],
+                reduce_dense_factor=config['reduce_dense_factor'],
+                dense_activation=config['dense_activation'],
+                dropout=config['dropout'])
 
 
     # Print the model summary
@@ -89,7 +102,7 @@ if __name__ == "__main__":
     custom_loss = trace_loss(N, 1/N)
 
     # Train the model with the config
-    train_MLP_custom_loss(train_dataset, test_dataset, model,
+    train_CNN_custom_loss(train_dataset, test_dataset, model,
                           epochs=config['epochs'],
                           optimizer=optimizer,
                           custom_loss_fn=custom_loss,
@@ -106,11 +119,11 @@ if __name__ == "__main__":
     run.finish()
 
     # Save the model
-    # model.save(f"./trained_models/FCNN/{config['arquitecture']}_test1.h5")
+    # model.save(f"./trained_models/CNN/{config['arquitecture']}_test1.h5")
 
     # # open model
     # model = keras.models.load_model(
-    #     f"./trained_models/FCNN/{config['arquitecture']}_test1.h5")
+    #     f"./trained_models/CNN/{config['arquitecture']}_test1.h5")
 
     import matplotlib.pyplot as plt
 
@@ -125,7 +138,7 @@ if __name__ == "__main__":
         y_complex = tf.complex(y[:N], y[N:])
         x = x[0]
 
-        fig, axs = plt.subplots(2, 2)
+        fig, axs = plt.subplots(2, 3)
         axs[0, 0].plot(np.abs(y_complex))
         axs[0, 0].plot(np.abs(y_pred_complex))
         axs[0, 0].set_title('Intensity of the input pulse (time domain)')
@@ -136,12 +149,18 @@ if __name__ == "__main__":
         axs[0, 1].set_title('Phase of the input pulse (time domain)')
         axs[0, 1].set_xlabel('Time')
         axs[0, 1].set_ylabel('Amplitude')
-        axs[1, 0].imshow(x)
+        axs[1, 0].imshow(x, cmap='nipy_spectral')
         axs[1, 0].set_title('SHG-FROG trace of the input pulse')
         axs[1, 0].set_xlabel('Time')
         axs[1, 0].set_ylabel('Frequency')
-        axs[1, 1].imshow(pred_trace)
+        axs[1, 1].imshow(pred_trace, cmap='nipy_spectral')
         axs[1, 1].set_title('SHG-FROG trace of the predicted pulse')
         axs[1, 1].set_xlabel('Time')
         axs[1, 1].set_ylabel('Frequency')
+        axs[1, 2].imshow(np.abs(x - pred_trace), cmap='RdBu')
+        # Add colorbar
+        cbar = plt.colorbar(axs[1, 2].imshow(np.abs(x - pred_trace), cmap='RdBu'), ax=axs[1, 2])
+        axs[1, 2].set_title('Difference between input and predicted trace')
+        axs[1, 2].set_xlabel('Time')
+        axs[1, 2].set_ylabel('Frequency')
         plt.show()

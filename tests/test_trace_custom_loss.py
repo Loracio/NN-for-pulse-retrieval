@@ -19,14 +19,14 @@ from wandb.keras import WandbCallback
 import path_helper
 
 from src.io import load_and_norm_data, process_data
-from src.models import MLP, train_MLP_custom_loss, custom_loss
+from src.models import MLP, bottleneck_MLP, train_MLP_custom_loss, trace_loss
 
 from src.utils import compute_trace
 
 if __name__ == "__main__":
     # Define pulse database parameters
     N = 64
-    NUMBER_OF_PULSES = 2500
+    NUMBER_OF_PULSES = 1000
     FILE_PATH = f"./data/generated/N{N}/{NUMBER_OF_PULSES}_randomPulses_N{N}.csv"
     # Handle error if path does not exist
     try:
@@ -49,6 +49,7 @@ if __name__ == "__main__":
         'val_metrics': 'MeanSquaredError',
         'n_hidden_layers': 2,
         'n_neurons_per_layer': 512,
+        'reduction_factor': 4,
         'activation': 'relu',
         'dropout': None,
         'patience': 10,
@@ -66,11 +67,17 @@ if __name__ == "__main__":
 
     # Initialize Weights & Biases with the config parameters
     run = wandb.init(project="Custom loss tests", config=config,
-                     name='MLP test run #5')
+                     name='MLP custom trace + MSE')
 
     # Build the model with the config
-    model = MLP(config['input_shape'], config['output_shape'], config['n_hidden_layers'],
+    if config['arquitecture'] == 'MLP':
+        model = MLP(config['input_shape'], config['output_shape'], config['n_hidden_layers'],
                 config['n_neurons_per_layer'], config['activation'], config['dropout'])
+
+    if config['arquitecture'] == 'bottleneck_MLP':
+        model = bottleneck_MLP(config['input_shape'], config['output_shape'], config['n_hidden_layers'],
+                           config['n_neurons_per_layer'], config['reduction_factor'], config['activation'], config['dropout'])
+
 
     # Print the model summary
     model.summary()
@@ -78,6 +85,8 @@ if __name__ == "__main__":
     # Set the optimizer with the config with its learning rate
     optimizer = keras.optimizers.get(config['optimizer'])
     optimizer.learning_rate = config['learning_rate']
+
+    custom_loss = trace_loss(N, 1/N)
 
     # Train the model with the config
     train_MLP_custom_loss(train_dataset, test_dataset, model,

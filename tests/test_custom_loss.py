@@ -3,7 +3,7 @@ import tensorflow as tf
 
 import path_helper
 
-from src.models.custom_loss import custom_loss
+from src.models import trace_loss
 from src.io import load_and_norm_data, process_data
 
 class TestCustomLoss(unittest.TestCase):
@@ -24,7 +24,8 @@ class TestCustomLoss(unittest.TestCase):
         x, y = next(iter(test_dataset))
 
         # Compute the loss (should be zero)
-        loss = custom_loss(x, y)
+        loss_fn = trace_loss(N, 1/N)
+        loss = loss_fn(x, y)
 
         # Print the value of the loss as a scalar
         print(f"Loss: {loss.numpy()}")

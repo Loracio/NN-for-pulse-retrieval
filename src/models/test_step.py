@@ -17,7 +17,7 @@ def test_step_MLP(x, y, model, loss_fn, test_acc_metric):
     val_results = model(x, training=False)
     loss_value = loss_fn(y, val_results)
 
-    test_acc_metric.update_state(y, val_results)
+    test_acc_metric.update_state(x, val_results) # Trace MSE metric is called with the input data
 
     return loss_value
 

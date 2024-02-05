@@ -119,3 +119,16 @@ def compute_trace_error(y_true, y_pred, N=64, t0=0, Δt = 1/64):
     R = tf.reduce_mean(trace_errors)
 
     return R
+
+def meanVal(x, y):
+    """
+    Compute the mean value of x with respect to the probability distribution y.
+
+    Args:
+        x (np.array): values
+        y (np.array): probability distribution
+
+    Returns:
+        mean (float): mean value of x
+    """
+    return np.sum(x * y) / np.sum(y)

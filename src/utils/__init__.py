@@ -4,6 +4,6 @@ except NameError:
     __UTILS_IMPORTED__= False
 
 if not __UTILS_IMPORTED__:
-    from .utils import compute_trace, compute_trace_error, DFT, IDFT
+    from .utils import compute_trace, compute_trace_error, DFT, IDFT, meanVal
     
 __UTILS_IMPORTED__ = True

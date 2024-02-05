@@ -19,7 +19,7 @@ from wandb.keras import WandbCallback
 import path_helper
 
 from src.io import load_and_norm_data, process_data
-from src.models import CNN, train_CNN_custom_loss, trace_loss
+from src.models import CNN, train_CNN_custom_loss, trace_loss, MultiResNet, DenseNet
 
 from src.utils import compute_trace
 
@@ -47,9 +47,9 @@ if __name__ == "__main__":
         'loss': 'trace_loss',
         'train_metrics': 'MeanSquaredError',
         'val_metrics': 'MeanSquaredError',
-        'n_conv_layers': 3, # Number of convolutional layers
-        'n_filters_per_layer': 64, # Number of filters per layer
-        'reduce_filter_factor': 2, # Reduction factor for the number of filters in each layer
+        'n_conv_layers': 2, # Number of convolutional layers
+        'n_filters_per_layer': 32, # Number of filters per layer
+        'reduce_filter_factor': 0.25, # Reduction factor for the number of filters in each layer
         'kernel_size': (3, 3), # Kernel size
         'pool': True, # Use pooling layers
         'pool_size': (2, 2), # Pool size
@@ -58,11 +58,11 @@ if __name__ == "__main__":
         'n_neurons_per_layer': 512, # Number of neurons per dense layer
         'reduce_dense_factor': 2, # Reduction factor for the number of neurons in each layer in the dense layers
         'dense_activation': 'relu', # Activation function for the dense layers
-        'dropout': 0.1, # Dropout rate, if None, no dropout is used
+        'dropout': None, # Dropout rate, if None, no dropout is used
         'patience': 5, # Patience for the early stopping
         'training_size': 0.8,
         'database': f'{NUMBER_OF_PULSES}_randomPulses_N{N}',
-        'arquitecture': 'CNN',
+        'arquitecture': 'CNN', # 'MultiResNet', 'DenseNet', 'CNN
         'input_shape': (N, N, 1), # The number of channels is the last element of the input shape
         'output_shape': (int(2 * N)),
     }
@@ -74,10 +74,17 @@ if __name__ == "__main__":
 
     # Initialize Weights & Biases with the config parameters
     run = wandb.init(project="Custom loss tests", config=config,
-                     name='CNN custom trace test #2')
+                     name='CNN test #33')
 
     # Build the model with the config
-    model = CNN(config['input_shape'], config['output_shape'],
+    if config['arquitecture'] == 'MultiResNet':
+        model = MultiResNet()
+
+    if config['arquitecture'] == 'DenseNet':
+        model = DenseNet([6, 12, 24, 16])
+
+    if config['arquitecture'] == 'CNN':
+        model = CNN(config['input_shape'], config['output_shape'],
                 n_conv_layers=config['n_conv_layers'],
                 n_filters_per_layer=config['n_filters_per_layer'],
                 reduce_filter_factor=config['reduce_filter_factor'],

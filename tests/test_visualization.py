@@ -14,7 +14,7 @@ if __name__ == '__main__':
     # Define pulse database parameters
     N = 64
     Δt = 1 / N
-    NUMBER_OF_PULSES = 1000
+    NUMBER_OF_PULSES = 2500
     FILE_PATH = f"./data/generated/N{N}/{NUMBER_OF_PULSES}_randomPulses_N{N}.csv"
     # Handle error if path does not exist
     try:

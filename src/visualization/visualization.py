@@ -432,9 +432,12 @@ class resultsGUI():
         Returns:
             str: Formatted string
         """
-        exponent = int(np.floor(np.log10(abs(value))))
-        coefficient = value / 10**exponent
-        formatted_str = f"${coefficient:.{precision}f} \\times 10^{{{exponent}}}$"
+        try:
+            exponent = int(np.floor(np.log10(abs(value))))
+            coefficient = value / 10**exponent
+            formatted_str = f"${coefficient:.{precision}f} \\times 10^{{{exponent}}}$"
+        except:
+            formatted_str = f"error"
         return formatted_str
 
     def next_result(self, event):

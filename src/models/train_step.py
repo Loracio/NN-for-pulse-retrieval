@@ -21,7 +21,7 @@ def train_step_MLP(x, y, model, optimizer, loss_fn, train_acc_metric):
     grads = tape.gradient(loss_value, model.trainable_weights)
     optimizer.apply_gradients(zip(grads, model.trainable_weights))
 
-    train_acc_metric.update_state(x, results) # Trace MSE metric is called with the input data
+    train_acc_metric.update_state(y, results)
 
 
     return loss_value

@@ -56,14 +56,26 @@ def load_data(FILE_PATH, N, NUMBER_OF_PULSES):
 def load_and_norm_data(FILE_PATH, N, NUMBER_OF_PULSES):
     """
     This function preprocesses the data from the database, iterating over it.
-    It returns a dataset with the input data (train) and the target data (target)
+    It returns a tensorflow dataset.
 
     Note that we also have the TBP of the pulses in the first column of the db.
     We want to save them in a separate array, so we can use them later.
 
     The function also normalizes each trace, by dividing by the maximum value.
-    The real part and imaginary part of the pulse are normalized separately,
-    dividing by the maximum value of each part.
+    The real part and imaginary part of the pulse are normalized by dividing by
+    the maximum absolute value (module) of the complex number.
+
+    Args:
+        FILE_PATH: str
+            Path to the database file
+        N: int
+            Number of points in the SHG-FROG trace
+        NUMBER_OF_PULSES: int
+            Number of pulses in the database
+
+    Returns:
+        dataset: tf.data.Dataset
+            Dataset with the pulse database
     """
     # Create a record_defaults with 1 + 2N + N*N elements that are tf.float32
     db_record_defaults = [tf.float32] * (1 + 2*N + N*N)

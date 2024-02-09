@@ -21,8 +21,6 @@ import path_helper
 from src.io import load_and_norm_data, process_data
 from src.models import CNN, train_CNN_custom_loss, trace_loss, MultiResNet, DenseNet
 
-from src.utils import compute_trace
-
 if __name__ == "__main__":
     # Define pulse database parameters
     N = 64
@@ -38,7 +36,7 @@ if __name__ == "__main__":
 
     # Define config parameters for wandb
     config = {
-        'epochs': 33,
+        'epochs': 50,
         'batch_size': 512,
         'log_step': 50,
         'val_log_step': 50,
@@ -74,7 +72,7 @@ if __name__ == "__main__":
 
     # Initialize Weights & Biases with the config parameters
     run = wandb.init(project="Custom loss tests", config=config,
-                     name='CNN test #33')
+                     name='CNN test')
 
     # Build the model with the config
     if config['arquitecture'] == 'MultiResNet':
@@ -127,47 +125,3 @@ if __name__ == "__main__":
 
     # Save the model
     # model.save(f"./trained_models/CNN/{config['arquitecture']}_test1.h5")
-
-    # # open model
-    # model = keras.models.load_model(
-    #     f"./trained_models/CNN/{config['arquitecture']}_test1.h5")
-
-    import matplotlib.pyplot as plt
-
-    # Plot the predicted SHG-FROG trace of the first pulse in the test dataset
-    for x, y in iter(test_dataset):
-        y_pred = model.predict(x)
-        y_pred = y_pred[0]
-        y_pred_complex = y_pred[:N] + 1j * y_pred[N:]
-        t = np.array([-np.floor(0.5 * N) / N + i / N for i in range(N)])
-        pred_trace = compute_trace(y_pred_complex, t, 1/N)
-        y = y[0]
-        y_complex = tf.complex(y[:N], y[N:])
-        x = x[0]
-
-        fig, axs = plt.subplots(2, 3)
-        axs[0, 0].plot(np.abs(y_complex))
-        axs[0, 0].plot(np.abs(y_pred_complex))
-        axs[0, 0].set_title('Intensity of the input pulse (time domain)')
-        axs[0, 0].set_xlabel('Time')
-        axs[0, 0].set_ylabel('Amplitude')
-        axs[0, 1].plot(np.unwrap(np.angle(y_complex)))
-        axs[0, 1].plot(np.unwrap(np.angle(y_pred_complex)))
-        axs[0, 1].set_title('Phase of the input pulse (time domain)')
-        axs[0, 1].set_xlabel('Time')
-        axs[0, 1].set_ylabel('Amplitude')
-        axs[1, 0].imshow(x, cmap='nipy_spectral')
-        axs[1, 0].set_title('SHG-FROG trace of the input pulse')
-        axs[1, 0].set_xlabel('Time')
-        axs[1, 0].set_ylabel('Frequency')
-        axs[1, 1].imshow(pred_trace, cmap='nipy_spectral')
-        axs[1, 1].set_title('SHG-FROG trace of the predicted pulse')
-        axs[1, 1].set_xlabel('Time')
-        axs[1, 1].set_ylabel('Frequency')
-        axs[1, 2].imshow(np.abs(x - pred_trace), cmap='RdBu')
-        # Add colorbar
-        cbar = plt.colorbar(axs[1, 2].imshow(np.abs(x - pred_trace), cmap='RdBu'), ax=axs[1, 2])
-        axs[1, 2].set_title('Difference between input and predicted trace')
-        axs[1, 2].set_xlabel('Time')
-        axs[1, 2].set_ylabel('Frequency')
-        plt.show()

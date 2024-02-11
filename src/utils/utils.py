@@ -1,124 +1,108 @@
 import numpy as np
 import tensorflow as tf
 
-def compute_trace(E, t, Δt):
+class fourier_utils():
     """
-    Computes the SHG-FROG trace of a pulse E(t).
-    Given by:
-        T(ω, τ) =  | ∫ E(t)E(t - τ) exp(-i ω t) dt |²
+    Functions that involve Fourier Transforms for treating the SHG-FROG traces.
 
-    Where ω is the frequency and τ is the time delay.
+    They all share the same time and frequency arrays, as well as the phase factors,
+    so memory is saved by computing them only once and storing them as attributes of the class.
 
     Args:
-        E (np.array(complex)): Electric field of the pulse
-        t (np.array): time array of the pulse
-
-    Returns:
-        T (np.array): SHG-FROG trace. NxN matrix of real numbers
+        N (int): Number of points in the trace
+        Δt (float): Time step of the trace
     """
-    N = t.size
+    def __init__(self, N, Δt):
+        self.N = N
+        self.Δt = Δt
 
-    ω = -1 / (2 * Δt) + np.arange(N) /(N * Δt) 
-    ω *= 2 * np.pi
-    Δω = 2 * np.pi / Δt # Reciprocity relation
+        self.N_f = tf.cast(N, dtype=tf.float32) # Number of points in the trace (float)
+        self.Δt_f = tf.cast(Δt, dtype=tf.float32) # Time step (float)
+        self.Δω_f = 2 * np.pi / (self.N_f * self.Δt_f) # Frequency step (float)
 
-    # Time delays
-    τ = np.array([-np.floor(0.5 * N) * Δt + i * Δt for i in range(N)])
+        self.t = tf.cast(tf.range(self.N), dtype=tf.float32) * self.Δt_f - self.N_f / 2 * self.Δt_f # Time array
+        self.omega = - np.pi / self.Δt_f + tf.cast(tf.range(self.N), dtype=tf.float32) * self.Δω_f # Angular frequency array
 
-    # Introduce the delay in the frequency domain, as a phase factor exp(i ω τ)
-    delays = np.zeros((N, N), dtype=np.complex128)
-    for i, tau in enumerate(τ):
-        delays[i][:] = np.exp(1j * ω * tau)
+        # Compute the phase factor of the fourier transform
+        # rₙ = Δt / 2π · e^{i n t₀ Δω} ; sⱼ = e^{i ω₀ tⱼ}
+        # Where n is the index of the time array, t₀ is the first time value, Δω is the
+        # angular frequency step, j is the index of the angular frequency array, ω₀ is the
+        # first angular frequency value and tⱼ is the j-th time value
+        self.r_n = tf.exp(tf.complex(tf.cast(0.0, dtype=tf.float32), self.t[0] * self.Δω_f * tf.cast(tf.range(self.N), dtype=tf.float32)))
+        self.r_n_conj = tf.math.conj(self.r_n)
+        self.r_n = self.r_n * tf.complex(self.Δt_f / (2 * np.pi), 0.0) # Including amplitude factor to the phase factor (r_n) to avoid multiplying by it later
+        self.s_j = tf.exp(tf.complex(0.0, self.omega[0] * self.t))
+        self.s_j_conj = tf.complex(self.Δω_f, 0.0) * tf.math.conj(self.s_j) # Including Δω_f to the phase factor (s_j) to avoid multiplying by it later
 
-    spectrum = DFT(E, Δt)
+        # For delaying each of the predicted electric fields, we need to multiply
+        # each of the spectrums by a phase factor: exp(complex(0, omega[j] * t[i]))
+        # where omega is the angular frequency array and t is the time array
+        # i and j are the indices of the arrays, so we need to create a matrix
+        # of shape (N, N) where each element is the product of the corresponding
+        # elements of the arrays
+        self.delay_factor = tf.exp(tf.complex(0.0, self.omega[None, :] * self.t[:, None]))
 
-    # Compute the trace
-    T = np.zeros((N,N))
-    for i in range(N):
-        T[i][:] = np.abs(DFT(E * IDFT(spectrum * delays[i], Δt), Δt))**2
+    @tf.function
+    def compute_trace(self, field_dataset):
+        """
+        Compute the trace of the signal operator given by the input electric field and the delayed electric field.
 
-    return T
+        Args:
+            fields (tf.Tensor): Values of the electric field (real and imaginary parts concatenated in the last dimension of the tensor)
 
-def DFT(E, Δt):
-    """
-    Computes the Discrete Fourier Transform of a given pulse E(t), using
-    the Fast Fourier Transform algorithm.
+        Returns:
+            tf.Tensor: Trace of the passed electric fields
+        """
 
-    Args:
-        E (np.array(complex)): Electric field of the pulse in the time domain
-        Δt (float): time step
+        # Take the real and imaginary parts of the predicted values
+        fields_complex = tf.complex(field_dataset[:, :self.N], field_dataset[:, self.N:])
 
-    Returns:
-        Ẽ (np.array(complex)): Electric field of the pulse in the frequency domain
-    """
-    N = E.size
-    
-    ω = -1 / (2 * Δt) + np.arange(N) /(N * Δt)
-    ω *= 2 * np.pi
-    Δω = 2 * np.pi / Δt 
+        # Compute the fourier transform of each predicted field
+        # DTF(fields) = r_n · ifft(fields · s_j)
+        # Where r_n is the phase factor of the fourier transform, fields is the
+        # predicted electric field and s_j is the phase factor for delaying the
+        # electric field
+        predicted_spectrums = self.apply_DFT(fields_complex)
 
-    # Time array centered at zero with N points and Δt step
-    t = np.array([-np.floor(0.5 * N) * Δt + i * Δt for i in range(N)])
+        # Delay each of the predicted spectrums by multiplying them by the delay factor
+        delayed_predicted_spectrums = predicted_spectrums[:, None] * self.delay_factor
 
-    # Phase factors
-    r_n = np.exp(-1j * np.arange(np.size(ω)) * t[0] * Δω)
-    s_j = np.exp(-1j * ω[0] * t)
+        # Bring back the delayed spectrums to the time domain
+        delayed_predicted_pulses = self.apply_IDFT(delayed_predicted_spectrums)
 
-    return Δt / (2 * np.pi) * r_n * np.fft.ifft(E * s_j)
+        # Signal operator given by the predicted electric field and the delayed electric field
+        signal_operator = fields_complex[:, None, :] * delayed_predicted_pulses
 
-def IDFT(Ẽ, Δt):
-    """
-    Computes the Inverse Discrete Fourier Transform of a given pulse Ẽ(ω), using
-    the Fast Fourier Transform algorithm.
+        # To obtain the trace of the signal operator, we need to compute the fourier transform
+        fields_trace = tf.square(tf.abs(self.apply_DFT(signal_operator)))
 
-    Args:
-        Ẽ (np.array(complex)): Electric field of the pulse in the frequency domain
-        Δt (float): time step
+        return fields_trace
 
-    Returns:
-        E (np.array(complex)): Electric field of the pulse in the time domain
-    """
-    N = Ẽ.size
+    @tf.function
+    def apply_DFT(self, x):
+        """
+        Apply the Discrete Fourier Transform to the input signal x.
 
-    ω = -1 / (2 * Δt) + np.arange(N) /(N * Δt)
-    ω *= 2 * np.pi
-    Δω = 2 * np.pi / Δt 
+        Args:
+            x (tf.Tensor): Input signal to apply the DFT to
 
-    # Time array centered at zero with N points and Δt step
-    t = np.array([-np.floor(0.5 * N) * Δt + i * Δt for i in range(N)])
+        Returns:
+            tf.Tensor: DFT of the input signal
+        """
+        return self.r_n[None, :] * tf.signal.ifft(x * self.s_j[None, :])
 
-    # Phase factors
-    r_n_conj = np.exp(1j * np.arange(np.size(ω)) * t[0] * Δω)
-    s_j_conj = np.exp(1j * ω[0] * t)
+    @tf.function
+    def apply_IDFT(self, x):
+        """
+        Apply the Inverse Discrete Fourier Transform to the input signal x.
 
-    return s_j_conj * Δω * np.fft.fft(Ẽ * r_n_conj)
-
-
-def compute_trace_error(y_true, y_pred, N=64, t0=0, Δt = 1/64):
-    """
-    Computes the trace error (R) between the true and predicted SHG-FROG traces.
-
-    Args:
-        y_true (tf.Tensor): True SHG-FROG traces
-        y_pred (tf.Tensor): Predicted SHG-FROG traces
-        t (np.array): Time array
-        Δt (float): Time step
-
-    Returns:
-        R (tf.Tensor): Average trace error
-    """
-    t = np.arange(N) * Δt + t0
-
-    # Compute the predicted SHG-FROG traces
-    T_pred = tf.vectorized_map(lambda e: tf.py_function(compute_trace, [e, t, Δt], Tout=tf.float32), y_pred)
-
-    # Compute the trace error R for each pair of true and predicted traces
-    trace_errors = tf.vectorized_map(lambda x, y: tf.sqrt(tf.reduce_sum(tf.square(x - y))) / (N * tf.reduce_max(x)), y_true, T_pred)
-
-    # Compute the average trace error over all pairs
-    R = tf.reduce_mean(trace_errors)
-
-    return R
+        Args:
+            x (tf.Tensor): Input signal to apply the IDFT to
+        
+        Returns:
+            tf.Tensor: IDFT of the input signal
+        """
+        return self.s_j_conj[None, :] * tf.signal.fft(x * self.r_n_conj[None, :])
 
 def meanVal(x, y):
     """

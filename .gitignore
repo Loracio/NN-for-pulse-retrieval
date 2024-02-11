@@ -167,3 +167,6 @@ wandb/
 
 # Databases
 *.csv
+
+# tfrecords
+*.tfrecords

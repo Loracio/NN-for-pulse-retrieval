@@ -1,4 +1,5 @@
 import tensorflow as tf
+from .read import read_tfrecord
 
 def process_data(N, NUMBER_OF_PULSES, pulse_dataset, training_size, BATCH_SIZE, SHUFFLE_BUFFER_SIZE=None):
     """
@@ -25,3 +26,24 @@ def process_data(N, NUMBER_OF_PULSES, pulse_dataset, training_size, BATCH_SIZE, 
     test_dataset = pulse_dataset.skip(int(training_size * NUMBER_OF_PULSES)).batch(BATCH_SIZE).prefetch(buffer_size=tf.data.AUTOTUNE)
 
     return train_dataset, test_dataset
+
+def process_data_tfrecord(N, NUMBER_OF_PULSES, FILE_PATH, TRAINING_SIZE, BATCH_SIZE, norm_traces='total', SHUFFLE_BUFFER_SIZE=None):
+    """
+    Read the TFRecord file and process the data.
+
+    Args:
+        N (int): Number of time steps
+        NUMBER_OF_PULSES (int): Number of pulses in the database
+        FILE_PATH (str): Path to the TFRecord file
+        TRAINING_SIZE (float): Percentage of the dataset to use for training
+        BATCH_SIZE (int): Size of the batches to use in the dataset
+        norm_traces (str): Option for normalizing the traces
+        SHUFFLE_BUFFER_SIZE (int): Size of the buffer to use for shuffling the dataset
+
+    Returns:
+        train_dataset (tf.data.Dataset): Dataset containing the training pulses
+        test_dataset (tf.data.Dataset): Dataset containing the test pulses
+    """
+    pulse_dataset = read_tfrecord(FILE_PATH, N, NUMBER_OF_PULSES, BATCH_SIZE, norm_traces)
+
+    return process_data(N, NUMBER_OF_PULSES, pulse_dataset, TRAINING_SIZE, BATCH_SIZE, SHUFFLE_BUFFER_SIZE)

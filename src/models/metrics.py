@@ -64,6 +64,7 @@ class trace_MSE(tf.keras.metrics.Metric):
         self.total = self.add_weight(
             name="total", initializer="zeros")  # Total number of samples
 
+    @tf.function
     def update_state(self, y_true, y_pred, sample_weight=None):
         """
         Update the state of the metric with the new data.
@@ -75,9 +76,7 @@ class trace_MSE(tf.keras.metrics.Metric):
         """
         # Take the real and imaginary parts of the predicted values
         # and construct a complex tensor that has the predicted electric field
-        y_pred_real = y_pred[:, :self.N]
-        y_pred_imag = y_pred[:, self.N:]
-        y_pred_complex = tf.complex(y_pred_real, y_pred_imag)
+        y_pred_complex = tf.complex(y_pred[:, :self.N], y_pred[:, self.N:])
 
         # Compute predicted traces for the input electric fields
         y_pred_trace = self.compute_trace(y_pred_complex)
@@ -92,13 +91,16 @@ class trace_MSE(tf.keras.metrics.Metric):
         self.trace_MSE.assign_add(tf.reduce_sum(tf.reduce_mean((y_true_normalized - y_pred_trace_normalized)**2)))  # Increase the trace error
         self.total.assign_add(1)  # Increase the total number of samples
 
+    @tf.function
     def result(self):
         return self.trace_MSE / self.total
 
+    @tf.function
     def reset_states(self):
         self.trace_MSE.assign(0.0)
         self.total.assign(0.0)
 
+    @tf.function
     def apply_DFT(self, x):
         """
         Apply the Discrete Fourier Transform to the input signal x.
@@ -112,6 +114,7 @@ class trace_MSE(tf.keras.metrics.Metric):
         """
         return self.r_n[None, :] * tf.signal.ifft(x * self.s_j[None, :])
 
+    @tf.function
     def apply_IDFT(self, x):
         """
         Apply the Inverse Discrete Fourier Transform to the input signal x.
@@ -125,6 +128,7 @@ class trace_MSE(tf.keras.metrics.Metric):
         """
         return self.s_j_conj[None, :] * tf.signal.fft(x * self.r_n_conj[None, :])
 
+    @tf.function
     def compute_trace(self, y_pred_complex):
         """
         Compute the trace of the signal operator given by the input electric field and the delayed electric field.
@@ -140,22 +144,18 @@ class trace_MSE(tf.keras.metrics.Metric):
         # Where r_n is the phase factor of the fourier transform, y_pred is the
         # predicted electric field and s_j is the phase factor for delaying the
         # electric field
-        predicted_spectrums = self.r_n[None, :] * \
-            tf.signal.ifft(y_pred_complex * self.s_j[None, :])
+        predicted_spectrums = self.apply_DFT(y_pred_complex)
 
         # Delay each of the predicted spectrums by multiplying them by the delay factor
-        delayed_predicted_spectrums = predicted_spectrums[:,
-                                                          None] * self.delay_factor
+        delayed_predicted_spectrums = predicted_spectrums[:, None] * self.delay_factor
 
         # Bring back the delayed spectrums to the time domain
-        delayed_predicted_pulses = tf.map_fn(
-            self.apply_IDFT, delayed_predicted_spectrums, dtype=tf.complex64)
+        delayed_predicted_pulses = self.apply_IDFT(delayed_predicted_spectrums)
 
         # Signal operator given by the predicted electric field and the delayed electric field
         signal_operator = y_pred_complex[:, None, :] * delayed_predicted_pulses
 
         # To obtain the trace of the signal operator, we need to compute the fourier transform
-        y_pred_trace = tf.square(
-            tf.abs(tf.map_fn(self.apply_DFT, signal_operator, dtype=tf.complex64)))
+        y_pred_trace = tf.square(tf.abs(self.apply_DFT(signal_operator)))
 
         return y_pred_trace

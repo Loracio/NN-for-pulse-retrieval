@@ -52,6 +52,7 @@ def train_step_MLP_custom_loss(x, y, model, optimizer, custom_loss_fn, train_acc
 
     return loss_value
 
+@tf.function
 def train_step_CNN_custom_loss(x, y, model, optimizer, custom_loss_fn, train_acc_metric):
     """
     Example training step for a CNN model with a custom loss function (trace mse).

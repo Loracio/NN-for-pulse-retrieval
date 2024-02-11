@@ -34,6 +34,7 @@ if __name__ == '__main__':
     # model = keras.models.load_model(f"./trained_models/FCNN/bottleneck_MLP.h5") #! Bottleneck with MSE
     # model = keras.models.load_model(f"./trained_models/FCNN/MLP_test1.h5") #! Custom loss example
     model = keras.models.load_model(f"./trained_models/CNN/CNN_test1.h5") #! Custom loss example with CNN + GPU!
+    # model = keras.models.load_model(f"./trained_models/FCNN/bottleneck_MLP_custom_losstest1.h5") #! Custom loss example with CNN + GPU!
     
 
     # Create the GUI

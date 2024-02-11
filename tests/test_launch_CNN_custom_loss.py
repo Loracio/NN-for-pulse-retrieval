@@ -20,11 +20,12 @@ import path_helper
 
 from src.io import load_and_norm_data, process_data
 from src.models import CNN, train_CNN_custom_loss, trace_loss, MultiResNet, DenseNet
+from src.visualization import resultsGUI
 
 if __name__ == "__main__":
     # Define pulse database parameters
-    N = 64
-    NUMBER_OF_PULSES = 2500
+    N = 128
+    NUMBER_OF_PULSES = 5000
     FILE_PATH = f"./data/generated/N{N}/{NUMBER_OF_PULSES}_randomPulses_N{N}.csv"
     # Handle error if path does not exist
     try:
@@ -36,12 +37,12 @@ if __name__ == "__main__":
 
     # Define config parameters for wandb
     config = {
-        'epochs': 50,
-        'batch_size': 512,
-        'log_step': 50,
-        'val_log_step': 50,
+        'epochs': 250,
+        'batch_size': 32,
+        'log_step': 200,
+        'val_log_step': 200,
         'optimizer': 'adam',
-        'learning_rate': 0.001,
+        'learning_rate': 0.005,
         'loss': 'trace_loss',
         'train_metrics': 'MeanSquaredError',
         'val_metrics': 'MeanSquaredError',
@@ -51,13 +52,13 @@ if __name__ == "__main__":
         'kernel_size': (3, 3), # Kernel size
         'pool': True, # Use pooling layers
         'pool_size': (2, 2), # Pool size
-        'conv_activation': 'relu', # Activation function for the convolutional layers
-        'n_dense_layers': 2, # Number of dense layers
-        'n_neurons_per_layer': 512, # Number of neurons per dense layer
+        'conv_activation': 'sigmoid', # Activation function for the convolutional layers
+        'n_dense_layers': 4, # Number of dense layers
+        'n_neurons_per_layer': 2048, # Number of neurons per dense layer
         'reduce_dense_factor': 2, # Reduction factor for the number of neurons in each layer in the dense layers
-        'dense_activation': 'relu', # Activation function for the dense layers
-        'dropout': None, # Dropout rate, if None, no dropout is used
-        'patience': 5, # Patience for the early stopping
+        'dense_activation': 'sigmoid', # Activation function for the dense layers
+        'dropout': 0.05, # Dropout rate, if None, no dropout is used
+        'patience': 15, # Patience for the early stopping
         'training_size': 0.8,
         'database': f'{NUMBER_OF_PULSES}_randomPulses_N{N}',
         'arquitecture': 'CNN', # 'MultiResNet', 'DenseNet', 'CNN
@@ -71,8 +72,8 @@ if __name__ == "__main__":
                                                config['training_size'], config['batch_size'])
 
     # Initialize Weights & Biases with the config parameters
-    run = wandb.init(project="Custom loss tests", config=config,
-                     name='CNN test')
+    run = wandb.init(project="N=128", config=config,
+                     name='CNN test with tf.function decirator')
 
     # Build the model with the config
     if config['arquitecture'] == 'MultiResNet':
@@ -123,5 +124,13 @@ if __name__ == "__main__":
     # Finish the run
     run.finish()
 
-    # Save the model
-    # model.save(f"./trained_models/CNN/{config['arquitecture']}_test1.h5")
+    # Save the model using tensorflow save method
+    model.save(f"./trained_models/CNN/{config['arquitecture']}_test_N{N}.tf")
+
+    # import matplotlib.pyplot as plt
+
+    # # Show the results
+    # result_test = resultsGUI(model, test_dataset, int(len(test_dataset)), N, 1/N)
+    # result_test.plot()
+
+    # plt.show()

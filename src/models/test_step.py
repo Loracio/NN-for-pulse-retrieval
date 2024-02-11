@@ -42,6 +42,7 @@ def test_step_MLP_custom_loss(x, y, model, custom_loss_fn, test_acc_metric):
 
     return loss_value
 
+@tf.function
 def test_step_CNN_custom_loss(x, y, model, custom_loss_fn, test_acc_metric):
     """
     Example test step for a CNN model with a custom loss function (trace mse).

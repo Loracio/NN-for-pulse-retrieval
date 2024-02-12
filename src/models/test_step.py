@@ -91,3 +91,37 @@ def test_step_joint_loss(x, y, model, weight_trace_loss, trace_loss_fn, weight_f
     field_acc_metric.update_state(y, val_results)
 
     return loss_value
+
+@tf.function
+def test_step_combined_loss_training(x, y, model, mode, trace_loss_fn, field_loss_fn, trace_acc_metric, field_acc_metric):
+    """
+    Test step of a combined training in which some steps are done with the trace loss function and
+    others with the field loss function.
+
+    Args:
+        x (tf.Tensor): Input data
+        y (tf.Tensor): Target data
+        model (tf.keras.Model): Model to train
+        mode (int): Mode to use (1 for trace, 2 for field)
+        loss_fn (tf.keras.losses.Loss): Loss function to use
+        trace_acc_metric (tf.keras.metrics.Metric): Metric to use for trace accuracy
+        field_acc_metric (tf.keras.metrics.Metric): Metric to use for field accuracy
+
+    Returns:
+        loss_value (tf.Tensor): Loss value for the validation step
+    """
+
+    val_results = model(x, training=False)
+    loss_value = None
+    if mode == 1:
+        # Trace loss
+        loss_value = trace_loss_fn(x, val_results)
+
+    else:
+        # Field loss
+        loss_value = field_loss_fn(y, val_results)
+
+    trace_acc_metric.update_state(x, val_results)
+    field_acc_metric.update_state(y, val_results)
+
+    return loss_value

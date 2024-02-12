@@ -68,11 +68,9 @@ class trace_loss(tf.keras.losses.Loss):
         max_values = tf.reduce_max(y_pred_trace, axis=[1, 2], keepdims=True)
         y_pred_trace_normalized = y_pred_trace / max_values
 
-        max_values_true = tf.reduce_max(y_true, axis=[1, 2], keepdims=True)
-        y_true_normalized = y_true / max_values_true
-
         # Compute the MSE loss
-        loss = tf.reduce_mean((y_true_normalized - y_pred_trace_normalized)**2)
+        #! y_true is already normalized
+        loss = tf.reduce_mean((y_true - y_pred_trace_normalized)**2)
 
         return loss
 

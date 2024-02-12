@@ -61,14 +61,13 @@ if __name__ == "__main__":
         'patience': 15, # Patience for the early stopping
         'training_size': 0.8,
         'database': f'{NUMBER_OF_PULSES}_randomPulses_N{N}',
-        'norm_traces': 'total', # 'total' : normalize the traces by dividing by the maximum value of all the traces. 'individual' : normalize each trace by dividing by its maximum value
         'arquitecture': 'CNN', # 'MultiResNet', 'DenseNet', 'CNN
         'input_shape': (N, N, 1), # The number of channels is the last element of the input shape
         'output_shape': (int(2 * N)),
     }
 
     # Load and process the pulse database
-    train_dataset, test_dataset = process_data_tfrecord(N, NUMBER_OF_PULSES, FILE_PATH, config['training_size'], config['batch_size'], norm_traces=config['norm_traces'])
+    train_dataset, test_dataset = process_data_tfrecord(N, NUMBER_OF_PULSES, FILE_PATH, config['training_size'], config['batch_size'])
 
     # Initialize Weights & Biases with the config parameters
     run = wandb.init(project="N=128", config=config,

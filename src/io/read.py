@@ -143,7 +143,7 @@ def _parse_function(example_proto):
     
     return real_field, imag_field, tbp
 
-def read_tfrecord(FILE_PATH, N, NUMBER_OF_PULSES, BATCH_SIZE, norm_traces='total'):
+def read_tfrecord(FILE_PATH, N, NUMBER_OF_PULSES, BATCH_SIZE):
     """
     Read the TFRecord file and return a dataset with the pulses and their SHG-FROG traces.
     The pulses come already normalized, but the traces have to be normalized.
@@ -196,14 +196,9 @@ def read_tfrecord(FILE_PATH, N, NUMBER_OF_PULSES, BATCH_SIZE, norm_traces='total
     # We pass it as a batch for performance (it's faster to compute the fourier transform of a batch of pulses)
     # and less memory intensive
     trace_dataset = field_dataset.batch(BATCH_SIZE).map(fourier.compute_trace)
-    # Norm the traces
-    if norm_traces == 'total':
-        # Norm the traces by dividing by the maximum value of the whole dataset
-        trace_dataset = trace_dataset.map(lambda x: x / tf.reduce_max(tf.abs(x)))
 
-    if norm_traces == 'individual':
-        # Norm the traces by dividing by the maximum value of each trace
-        trace_dataset = trace_dataset.map(lambda x: x / tf.reduce_max(tf.abs(x), axis=[1, 2], keepdims=True))
+    # Norm the traces by dividing by the maximum value of each trace
+    trace_dataset = trace_dataset.map(lambda x: x / tf.reduce_max(tf.abs(x), axis=[1, 2], keepdims=True))
 
     # Unbatch the dataset
     trace_dataset = trace_dataset.unbatch()

@@ -6,7 +6,7 @@ from src.io import process_data_tfrecord
 
 if __name__ == '__main__':
     N = 128
-    NUMBER_OF_PULSES = 100
+    NUMBER_OF_PULSES = 5000
     FILE_PATH = f"./data/generated/N{N}/{NUMBER_OF_PULSES}_randomNormalizedPulses_N{N}.tfrecords"
 
     # Load the dataset into a tf.data.Dataset object

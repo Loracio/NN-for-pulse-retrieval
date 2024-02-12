@@ -27,7 +27,7 @@ def process_data(N, NUMBER_OF_PULSES, pulse_dataset, training_size, BATCH_SIZE, 
 
     return train_dataset, test_dataset
 
-def process_data_tfrecord(N, NUMBER_OF_PULSES, FILE_PATH, TRAINING_SIZE, BATCH_SIZE, norm_traces='total', SHUFFLE_BUFFER_SIZE=None):
+def process_data_tfrecord(N, NUMBER_OF_PULSES, FILE_PATH, TRAINING_SIZE, BATCH_SIZE, SHUFFLE_BUFFER_SIZE=None):
     """
     Read the TFRecord file and process the data.
 
@@ -44,6 +44,6 @@ def process_data_tfrecord(N, NUMBER_OF_PULSES, FILE_PATH, TRAINING_SIZE, BATCH_S
         train_dataset (tf.data.Dataset): Dataset containing the training pulses
         test_dataset (tf.data.Dataset): Dataset containing the test pulses
     """
-    pulse_dataset = read_tfrecord(FILE_PATH, N, NUMBER_OF_PULSES, BATCH_SIZE, norm_traces)
+    pulse_dataset = read_tfrecord(FILE_PATH, N, NUMBER_OF_PULSES, BATCH_SIZE)
 
     return process_data(N, NUMBER_OF_PULSES, pulse_dataset, TRAINING_SIZE, BATCH_SIZE, SHUFFLE_BUFFER_SIZE)

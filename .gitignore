@@ -170,3 +170,6 @@ wandb/
 
 # tfrecords
 *.tfrecords
+
+# tf models
+*.tf

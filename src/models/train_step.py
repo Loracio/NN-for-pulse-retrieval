@@ -78,3 +78,33 @@ def train_step_CNN_custom_loss(x, y, model, optimizer, custom_loss_fn, train_acc
 
 
     return loss_value
+
+@tf.function
+def train_step_joint_loss(x, y, model, optimizer, weight_trace_loss, trace_loss_fn, weight_field_loss, mse_loss_fn, trace_acc_metric, field_acc_metric):
+    """
+    Training step of a joint loss function (trace mse + mse).
+
+    Args:
+        x (tf.Tensor): Input data
+        y (tf.Tensor): Target data
+        model (tf.keras.Model): Model to train
+        optimizer (tf.keras.optimizers.Optimizer): Optimizer to use
+        weight_trace_loss (float): Weight for the trace loss
+        trace_loss_fn (tf.keras.losses.Loss): Trace loss function to use
+        weight_field_loss (float): Weight for the field loss
+        mse_loss_fn (tf.keras.losses.Loss): Field loss function to use
+        train_acc_metric (tf.keras.metrics.Metric): Metric to use for training accuracy
+    """
+    with tf.GradientTape() as tape:
+        results = model(x, training=True)
+        loss_value = weight_trace_loss * trace_loss_fn(x, results) + weight_field_loss * mse_loss_fn(y, results)
+    grads = tape.gradient(loss_value, model.trainable_weights)
+    optimizer.apply_gradients(zip(grads, model.trainable_weights))
+
+    # Update trace MSE metric
+    trace_acc_metric.update_state(x, results)
+    # Update field MSE metric
+    field_acc_metric.update_state(y, results)
+
+
+    return loss_value

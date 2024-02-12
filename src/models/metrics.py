@@ -85,10 +85,7 @@ class trace_MSE(tf.keras.metrics.Metric):
         max_values = tf.reduce_max(y_pred_trace, axis=[1, 2], keepdims=True)
         y_pred_trace_normalized = y_pred_trace / max_values
 
-        max_values_true = tf.reduce_max(y_true, axis=[1, 2], keepdims=True)
-        y_true_normalized = y_true / max_values_true
-
-        self.trace_MSE.assign_add(tf.reduce_sum(tf.reduce_mean((y_true_normalized - y_pred_trace_normalized)**2)))  # Increase the trace error
+        self.trace_MSE.assign_add(tf.reduce_sum(tf.reduce_mean((y_true - y_pred_trace_normalized)**2)))  # Increase the trace error
         self.total.assign_add(1)  # Increase the total number of samples
 
     @tf.function

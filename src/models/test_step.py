@@ -63,3 +63,31 @@ def test_step_CNN_custom_loss(x, y, model, custom_loss_fn, test_acc_metric):
     test_acc_metric.update_state(y, val_results)
 
     return loss_value
+
+@tf.function
+def test_step_joint_loss(x, y, model, weight_trace_loss, trace_loss_fn, weight_field_loss, mse_loss_fn, trace_acc_metric, field_acc_metric):
+    """
+    Example test step for a model with a joint loss function.
+
+    Args:
+        x (tf.Tensor): Input data
+        y (tf.Tensor): Target data
+        model (tf.keras.Model): Model to train
+        optimizer (tf.keras.optimizers.Optimizer): Optimizer to use
+        weight_trace_loss (tf.Tensor): Weight for the trace loss
+        trace_loss_fn (tf.keras.losses.Loss): Trace loss function to use
+        weight_field_loss (tf.Tensor): Weight for the field loss
+        mse_loss_fn (tf.keras.losses.Loss): MSE loss function to use
+        trace_acc_metric (tf.keras.metrics.Metric): Metric to use for trace accuracy
+        field_acc_metric (tf.keras.metrics.Metric): Metric to use for field accuracy
+
+    Returns:
+        loss_value (tf.Tensor): Loss value for the validation step
+    """
+    val_results = model(x, training=False)
+    loss_value = weight_trace_loss * trace_loss_fn(x, val_results) + weight_field_loss * mse_loss_fn(y, val_results)
+
+    trace_acc_metric.update_state(x, val_results)
+    field_acc_metric.update_state(y, val_results)
+
+    return loss_value

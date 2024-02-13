@@ -278,6 +278,7 @@ class resultsGUI():
         self.im0 = self.ax0.pcolormesh(self.omega, self.t, self.true_traces[0][:].reshape(
             self.N, self.N) / np.max(self.true_traces[0][:]), cmap='nipy_spectral')
         self.fig.colorbar(self.im0, ax=self.ax0)
+        self.im0.set_clim(0, 1)
         self.ax0.set_xlabel("Frequency")
         self.ax0.set_ylabel("Delay")
         self.ax0.set_title("True trace")

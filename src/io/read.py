@@ -143,13 +143,12 @@ def _parse_function(example_proto):
     
     return real_field, imag_field, tbp
 
-def read_tfrecord(FILE_PATH, N, NUMBER_OF_PULSES, BATCH_SIZE):
+def read_tfrecord(FILE_PATH, N, NUMBER_OF_PULSES, BATCH_SIZE, add_noise=False, noise_level=0.01, mask=False, mask_tolerance=1e-3):
     """
     Read the TFRecord file and return a dataset with the pulses and their SHG-FROG traces.
     The pulses come already normalized, but the traces have to be normalized.
-    There are two options for normalizing the traces:
-        - 'total': Divide by the maximum value of the whole dataset
-        - 'individual': Divide by the maximum value of each trace
+    There is an option to add Gaussian noise to the traces.
+    Traces are computed and normalized (after adding the noise if needed) in this function.
 
 
     Args:
@@ -163,6 +162,14 @@ def read_tfrecord(FILE_PATH, N, NUMBER_OF_PULSES, BATCH_SIZE):
             Size of the batches to use in the dataset
         norm_traces: str
             Option for normalizing the traces
+        add_noise: bool
+            Option for adding Gaussian noise to the traces
+        noise_level: float
+            Level of noise to add to the traces (percentage of the maximum value of the trace)
+        mask: bool
+            Option for applying a mask to the noise
+        mask_tolerance: float
+            Tolerance for the mask
 
     Returns:
         dataset: tf.data.Dataset
@@ -196,6 +203,10 @@ def read_tfrecord(FILE_PATH, N, NUMBER_OF_PULSES, BATCH_SIZE):
     # We pass it as a batch for performance (it's faster to compute the fourier transform of a batch of pulses)
     # and less memory intensive
     trace_dataset = field_dataset.batch(BATCH_SIZE).map(fourier.compute_trace)
+
+    # Add noise to the traces if needed
+    if add_noise:
+        trace_dataset = trace_dataset.map(lambda x: fourier.add_gaussian_noise(x, noise_level, mask=mask, mask_tolerance=mask_tolerance))
 
     # Norm the traces by dividing by the maximum value of each trace
     trace_dataset = trace_dataset.map(lambda x: x / tf.reduce_max(tf.abs(x), axis=[1, 2], keepdims=True))

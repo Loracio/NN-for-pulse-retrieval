@@ -27,7 +27,7 @@ def process_data(N, NUMBER_OF_PULSES, pulse_dataset, training_size, BATCH_SIZE, 
 
     return train_dataset, test_dataset
 
-def process_data_tfrecord(N, NUMBER_OF_PULSES, FILE_PATH, TRAINING_SIZE, BATCH_SIZE, SHUFFLE_BUFFER_SIZE=None):
+def process_data_tfrecord(N, NUMBER_OF_PULSES, FILE_PATH, TRAINING_SIZE, BATCH_SIZE, SHUFFLE_BUFFER_SIZE=None, add_noise=False, noise_level=0.01, mask=False, mask_tolerance=1e-3):
     """
     Read the TFRecord file and process the data.
 
@@ -39,11 +39,15 @@ def process_data_tfrecord(N, NUMBER_OF_PULSES, FILE_PATH, TRAINING_SIZE, BATCH_S
         BATCH_SIZE (int): Size of the batches to use in the dataset
         norm_traces (str): Option for normalizing the traces
         SHUFFLE_BUFFER_SIZE (int): Size of the buffer to use for shuffling the dataset
+        add_noise (bool): Option for adding Gaussian noise to the traces
+        noise_level (float): Level of noise to add to the traces (percentage of the maximum value of the trace)
+        mask (bool): Option for applying a mask to the noise
+        mask_tolerance (float): Tolerance for the mask
 
     Returns:
         train_dataset (tf.data.Dataset): Dataset containing the training pulses
         test_dataset (tf.data.Dataset): Dataset containing the test pulses
     """
-    pulse_dataset = read_tfrecord(FILE_PATH, N, NUMBER_OF_PULSES, BATCH_SIZE)
+    pulse_dataset = read_tfrecord(FILE_PATH, N, NUMBER_OF_PULSES, BATCH_SIZE, add_noise, noise_level, mask=mask, mask_tolerance=mask_tolerance)
 
     return process_data(N, NUMBER_OF_PULSES, pulse_dataset, TRAINING_SIZE, BATCH_SIZE, SHUFFLE_BUFFER_SIZE)

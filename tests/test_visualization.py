@@ -12,9 +12,9 @@ from src.io import load_and_norm_data, process_data, process_data_tfrecord
 
 if __name__ == '__main__':
     # Define pulse database parameters
-    N = 128
+    N = 64
     Δt = 1 / N
-    NUMBER_OF_PULSES = 5000
+    NUMBER_OF_PULSES = 100
     FILE_PATH = f"./data/generated/N{N}/{NUMBER_OF_PULSES}_randomNormalizedPulses_N{N}.tfrecords"
     # Handle error if path does not exist
     try:
@@ -29,20 +29,20 @@ if __name__ == '__main__':
     # train_dataset, test_dataset = process_data(N, NUMBER_OF_PULSES, pulse_dataset,
     #                                           0.8, 32)
 
-    train_dataset, test_dataset = process_data_tfrecord(N, NUMBER_OF_PULSES, FILE_PATH, 0.8, 10)
+    train_dataset, test_dataset = process_data_tfrecord(N, NUMBER_OF_PULSES, FILE_PATH, 0.9, 10, add_noise=True, noise_level=0.01, mask=True, mask_tolerance=1e-3)
 
     # Load the trained model
     # model = keras.models.load_model(f"./trained_models/FCNN/MLP_test2.h5") #! Best MSE sweep result
     # model = keras.models.load_model(f"./trained_models/FCNN/bottleneck_MLP.h5") #! Bottleneck with MSE
     # model = keras.models.load_model(f"./trained_models/FCNN/MLP_test1.h5") #! Custom loss example
-    # model = keras.models.load_model(f"./trained_models/CNN/CNN_test1.h5") #! Custom loss example with CNN + GPU!
+    model = keras.models.load_model(f"./trained_models/CNN/CNN_test1.h5") #! Custom loss example with CNN + GPU!
     # model = keras.models.load_model(f"./trained_models/FCNN/bottleneck_MLP_custom_losstest1.h5") #! Custom loss example with CNN + GPU!
     # model = keras.models.load_model(f"./trained_models/CNN/CNN_test_N128.h5") #! N=128
-    model = keras.models.load_model(f"./trained_models/CNN/CNN_test_N128_normTraces_total.tf") #! N=128 with custom loss
+    # model = keras.models.load_model(f"./trained_models/CNN/CNN_test_N128_normTraces_combinedTraining.tf") #! N=128 with custom loss
     
 
     # Create the GUI
-    results = resultsGUI(model, test_dataset, int(0.2 * NUMBER_OF_PULSES), N, Δt, norm_predictions=True)
+    results = resultsGUI(model, train_dataset, int(0.9 * NUMBER_OF_PULSES), N, Δt, norm_predictions=True)
     results.plot()
 
     plt.show()

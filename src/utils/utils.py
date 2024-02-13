@@ -104,6 +104,41 @@ class fourier_utils():
         """
         return self.s_j_conj[None, :] * tf.signal.fft(x * self.r_n_conj[None, :])
 
+    @tf.function
+    def add_gaussian_noise(self, trace, noise_level, mask=False, mask_tolerance=1e-3):
+        """
+        This method generates a noisy trace by adding Gaussian noise to the input trace.
+        The noise is generated with a standard deviation of the given % of the maximum value of the trace.
+
+        Args:
+            trace (tf.Tensor): Trace to add noise to (batch of traces passed)
+            noise_level (float): Level of noise to add to the trace
+            mask (bool): If True, a mask is applied to the noise
+            mask_tolerance (float): Tolerance to apply the masks
+
+        Returns:
+            tf.Tensor: Noisy trace
+        """
+        # Get the max value of each trace
+        max_values = tf.reduce_max(tf.abs(trace), axis=[1, 2], keepdims=True)
+
+        if mask:
+            # For each trace, we want to generate the noise where
+            # the trace has a value greater than a tolerance, i.e. 1e-3.
+            mask_vals = tf.cast(tf.abs(trace) > mask_tolerance * max_values, dtype=tf.float32)
+
+        # Generate the noise of the same shape as the trace
+        noise = tf.random.normal(shape=tf.shape(trace), mean=0.0, stddev=noise_level * max_values)
+
+        if mask :
+            # We impose a zero value to the noise where the mask is zero
+            noise = noise * mask_vals
+
+        # Add the noise to the trace
+        noisy_trace = trace + noise
+
+        return noisy_trace
+
 def meanVal(x, y):
     """
     Compute the mean value of x with respect to the probability distribution y.

@@ -36,28 +36,28 @@ if __name__ == "__main__":
     # Define config parameters for wandb
     config = {
         'epochs': 250,
-        'batch_size': 32,
+        'batch_size': 256,
         'log_step': 200,
         'val_log_step': 200,
         'optimizer': 'adam',
-        'learning_rate': 0.01,
+        'learning_rate': 1e-3,
         'loss': 'trace_loss',
-        'weight_trace_loss': 0.9,  # Weight for the trace loss
-        'weight_field_loss': 0.1,  # Weight for the mse loss
-        'n_conv_layers': 2,  # Number of convolutional layers
-        'n_filters_per_layer': 32,  # Number of filters per layer
+        'weight_trace_loss': 1,  # Weight for the trace loss
+        'weight_field_loss': 1e-5,  # Weight for the mse loss
+        'n_conv_layers': 3,  # Number of convolutional layers
+        'n_filters_per_layer': 64,  # Number of filters per layer
         # Reduction factor for the number of filters in each layer
         'reduce_filter_factor': 0.25,
         'kernel_size': (3, 3),  # Kernel size
         'pool': True,  # Use pooling layers
         'pool_size': (2, 2),  # Pool size
         'conv_activation': 'relu',  # Activation function for the convolutional layers
-        'n_dense_layers': 2,  # Number of dense layers
-        'n_neurons_per_layer': 512,  # Number of neurons per dense layer
+        'n_dense_layers': 3,  # Number of dense layers
+        'n_neurons_per_layer': 1024,  # Number of neurons per dense layer
         # Reduction factor for the number of neurons in each layer in the dense layers
         'reduce_dense_factor': 2,
         'dense_activation': 'relu',  # Activation function for the dense layers
-        'dropout': 0.05,  # Dropout rate, if None, no dropout is used
+        'dropout': None,  # Dropout rate, if None, no dropout is used
         'patience': 15,  # Patience for the early stopping
         'training_size': 0.8,
         'database': f'{NUMBER_OF_PULSES}_randomPulses_N{N}',
@@ -73,14 +73,14 @@ if __name__ == "__main__":
 
     # Initialize Weights & Biases with the config parameters
     run = wandb.init(project="Joint loss", config=config,
-                     name='CNN test with joint loss',)
+                     name='3Conv2D relu no dropout',)
 
     # Build the model with the config
     if config['arquitecture'] == 'MultiResNet':
         model = MultiResNet()
 
     if config['arquitecture'] == 'DenseNet':
-        model = DenseNet([6, 12, 24, 16])
+        model = DenseNet([6, 12, 24, 16], input_shape=config['input_shape'], output_shape=config['output_shape'])
 
     if config['arquitecture'] == 'CNN':
         model = CNN(config['input_shape'], config['output_shape'],

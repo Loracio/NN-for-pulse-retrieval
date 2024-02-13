@@ -23,8 +23,8 @@ from src.visualization import resultsGUI
 
 if __name__ == "__main__":
     # Define pulse database parameters
-    N = 64
-    NUMBER_OF_PULSES = 100
+    N = 128
+    NUMBER_OF_PULSES = 5000
     FILE_PATH = f"./data/generated/N{N}/{NUMBER_OF_PULSES}_randomNormalizedPulses_N{N}.tfrecords"
     # Handle error if path does not exist
     try:
@@ -37,10 +37,10 @@ if __name__ == "__main__":
     # Define config parameters for wandb
     config = {
         'start_with': 0,  # 0 : Start with the field loss, 1 : Start with the trace loss
-        'trace_epochs': 5,
-        'field_epochs': 5,
-        'reps': 2,  # Number of repetitions of the combined training
-        'batch_size': 32,
+        'trace_epochs': 20,
+        'field_epochs': 10,
+        'reps': 5,  # Number of repetitions of the combined training
+        'batch_size': 64,
         'log_step': 200,
         'val_log_step': 200,
         'optimizer': 'adam',
@@ -63,7 +63,7 @@ if __name__ == "__main__":
         'patience': 15,  # Patience for the early stopping
         'training_size': 0.8,
         'database': f'{NUMBER_OF_PULSES}_randomPulses_N{N}',
-        'arquitecture': 'CNN',  # 'MultiResNet', 'DenseNet', 'CNN
+        'arquitecture': 'MultiResNet',  # 'MultiResNet', 'DenseNet', 'CNN
         # The number of channels is the last element of the input shape
         'input_shape': (N, N, 1),
         'output_shape': (int(2 * N)),
@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
     # Initialize Weights & Biases with the config parameters
     run = wandb.init(project="Joint loss", config=config,
-                     name='Combined training test N=64',)
+                     name='MultiResNet combined training',)
 
     # Build the model with the config
     if config['arquitecture'] == 'MultiResNet':
@@ -139,4 +139,4 @@ if __name__ == "__main__":
 
     # Save the model using tensorflow save method
     model.save(
-        f"./trained_models/CNN/{config['arquitecture']}_test_N{N}_normTraces_combinedTraining.tf")
+        f"./trained_models/CNN/{config['arquitecture']}_test_N{N}_normTraces_combinedTraining_2.tf")

@@ -141,7 +141,7 @@ def MultiResNet():
         keras.Model: MultiResNet model
     """
     # Define the input layer
-    input_layer = keras.layers.Input(shape=(64, 64, 1))
+    input_layer = keras.layers.Input(shape=(128, 128, 1))
 
     # Apply MultiRes blocks followed by standard convolutional layers
     x = MultiResBlock(input_layer, 32)
@@ -153,8 +153,9 @@ def MultiResNet():
 
     # Flatten the output and apply fully connected layers
     x = keras.layers.Flatten()(x)
+    x = keras.layers.Dense(1024, activation='relu')(x)
     x = keras.layers.Dense(512, activation='relu')(x)
-    output_layer = keras.layers.Dense(128, activation='relu')(x)
+    output_layer = keras.layers.Dense(256, activation='relu')(x)
 
     # Define the model
     model = keras.models.Model(inputs=input_layer, outputs=output_layer)
@@ -219,7 +220,7 @@ def conv_block(x, growth_rate):
     x = keras.layers.Concatenate()([x, x1])
     return x
 
-def DenseNet(blocks, growth_rate=32, reduction=0.5, input_shape=(64, 64, 1)):
+def DenseNet(blocks, growth_rate=64, reduction=0.5, input_shape=(64, 64, 1), output_shape=128):
     """
     Create a DenseNet model with the specified parameters.
     A DenseNet is a CNN that uses dense blocks and transition blocks instead of standard convolutional layers.
@@ -244,6 +245,6 @@ def DenseNet(blocks, growth_rate=32, reduction=0.5, input_shape=(64, 64, 1)):
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.Activation('relu')(x)
     x = keras.layers.GlobalAveragePooling2D()(x)
-    output_layer = keras.layers.Dense(128, activation='relu')(x)
+    output_layer = keras.layers.Dense(output_shape, activation='relu')(x)
     model = keras.models.Model(inputs=input_layer, outputs=output_layer)
     return model

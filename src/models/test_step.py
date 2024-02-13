@@ -85,10 +85,19 @@ def test_step_joint_loss(x, y, model, weight_trace_loss, trace_loss_fn, weight_f
         loss_value (tf.Tensor): Loss value for the validation step
     """
     val_results = model(x, training=False)
-    loss_value = weight_trace_loss * trace_loss_fn(x, val_results) + weight_field_loss * mse_loss_fn(y, val_results)
+
+    # Complex tensor of predictions
+    N = val_results.shape[1] // 2
+    y_pred_complex = tf.complex(val_results[:, :N], val_results[:, N:])
+
+    # Normalize the predicted fields by the max value of each of them
+    max_values = tf.reduce_max(tf.abs(y_pred_complex), axis=1, keepdims=True)
+    results_normalized = val_results / max_values
+
+    loss_value = weight_trace_loss * trace_loss_fn(x, val_results) + weight_field_loss * mse_loss_fn(y, results_normalized)
 
     trace_acc_metric.update_state(x, val_results)
-    field_acc_metric.update_state(y, val_results)
+    field_acc_metric.update_state(y, results_normalized)
 
     return loss_value
 
@@ -112,16 +121,26 @@ def test_step_combined_loss_training(x, y, model, mode, trace_loss_fn, field_los
     """
 
     val_results = model(x, training=False)
+
+    # Complex tensor of predictions
+    N = val_results.shape[1] // 2
+    y_pred_complex = tf.complex(val_results[:, :N], val_results[:, N:])
+
+    # Normalize the predicted fields by the max value of each of them
+    max_values = tf.reduce_max(tf.abs(y_pred_complex), axis=1, keepdims=True)
+    results_normalized = val_results / max_values
+
     loss_value = None
+
     if mode == 1:
         # Trace loss
         loss_value = trace_loss_fn(x, val_results)
 
     else:
         # Field loss
-        loss_value = field_loss_fn(y, val_results)
+        loss_value = field_loss_fn(y, results_normalized)
 
     trace_acc_metric.update_state(x, val_results)
-    field_acc_metric.update_state(y, val_results)
+    field_acc_metric.update_state(y, results_normalized)
 
     return loss_value

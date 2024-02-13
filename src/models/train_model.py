@@ -353,7 +353,6 @@ def train_combined_loss_training(train_dataset, test_dataset, model, optimizer, 
 
     mode = start_with
     mode_epoch_counter = 0 # counter to change mode after a certain number of epochs
-    total_epochs = field_epochs + trace_epochs
 
     for epoch in range((field_epochs + trace_epochs) * reps):
 
@@ -421,7 +420,7 @@ def train_combined_loss_training(train_dataset, test_dataset, model, optimizer, 
                 mode_epoch_counter = 0
                 print("Changing mode to field loss...")
         else:
-            if mode_epoch_counter >= trace_epochs:
+            if mode_epoch_counter >= field_epochs:
                 mode = 1
                 mode_epoch_counter = 0
                 print("Changing mode to trace loss...")

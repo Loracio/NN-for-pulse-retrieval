@@ -97,14 +97,23 @@ def train_step_joint_loss(x, y, model, optimizer, weight_trace_loss, trace_loss_
     """
     with tf.GradientTape() as tape:
         results = model(x, training=True)
-        loss_value = weight_trace_loss * trace_loss_fn(x, results) + weight_field_loss * mse_loss_fn(y, results)
+        # Complex tensor of predictions
+        N = results.shape[1] // 2
+        y_pred_complex = tf.complex(results[:, :N], results[:, N:])
+
+        # Normalize the predicted fields by the max value of each of them
+        max_values = tf.reduce_max(tf.abs(y_pred_complex), axis=1, keepdims=True)
+        results_normalized = results / max_values
+
+        loss_value = weight_trace_loss * trace_loss_fn(x, results) + weight_field_loss * mse_loss_fn(y, results_normalized)
+        
     grads = tape.gradient(loss_value, model.trainable_weights)
     optimizer.apply_gradients(zip(grads, model.trainable_weights))
 
     # Update trace MSE metric
     trace_acc_metric.update_state(x, results)
     # Update field MSE metric
-    field_acc_metric.update_state(y, results)
+    field_acc_metric.update_state(y, results_normalized)
 
 
     return loss_value
@@ -130,14 +139,24 @@ def train_step_combined_loss_training(x, y, model, optimizer, mode, trace_loss_f
     """
     with tf.GradientTape() as tape:
         results = model(x, training=True)
+        
+        # Complex tensor of predictions
+        N = results.shape[1] // 2
+        y_pred_complex = tf.complex(results[:, :N], results[:, N:])
+
+        # Normalize the predicted fields by the max value of each of them
+        max_values = tf.reduce_max(tf.abs(y_pred_complex), axis=1, keepdims=True)
+        results_normalized = results / max_values
+
         loss_value = None
+        
         if mode == 1:
             # Train with trace
             loss_value = trace_loss_fn(x, results)
 
         else:
             # Train with field
-            loss_value = field_loss_fn(y, results)
+            loss_value = field_loss_fn(y, results_normalized)
 
     grads = tape.gradient(loss_value, model.trainable_weights)
     optimizer.apply_gradients(zip(grads, model.trainable_weights))
@@ -145,7 +164,7 @@ def train_step_combined_loss_training(x, y, model, optimizer, mode, trace_loss_f
     # Update trace MSE metric
     trace_acc_metric.update_state(x, results)
     # Update field MSE metric
-    field_acc_metric.update_state(y, results)
+    field_acc_metric.update_state(y, results_normalized)
 
 
     return loss_value

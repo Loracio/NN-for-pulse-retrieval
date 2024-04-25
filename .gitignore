@@ -173,3 +173,6 @@ wandb/
 
 # tf models
 *.tf
+
+# hf 
+*.hf

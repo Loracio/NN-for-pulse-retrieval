@@ -22,8 +22,11 @@ def process_data(N, NUMBER_OF_PULSES, pulse_dataset, training_size, BATCH_SIZE, 
     pulse_dataset = pulse_dataset.map(lambda x, y, z: (y, z))
 
     # Split the dataset into train and test, shuffle and batch the train dataset
-    train_dataset = pulse_dataset.take(int(training_size * NUMBER_OF_PULSES)).shuffle(buffer_size=SHUFFLE_BUFFER_SIZE).batch(BATCH_SIZE).prefetch(buffer_size=tf.data.AUTOTUNE)
-    test_dataset = pulse_dataset.skip(int(training_size * NUMBER_OF_PULSES)).batch(BATCH_SIZE).prefetch(buffer_size=tf.data.AUTOTUNE)
+    train_dataset = pulse_dataset.take(int(training_size * NUMBER_OF_PULSES))
+    test_dataset = pulse_dataset.skip(int(training_size * NUMBER_OF_PULSES))
+
+    train_dataset = train_dataset.batch(BATCH_SIZE).prefetch(buffer_size=tf.data.AUTOTUNE)
+    test_dataset = test_dataset.batch(BATCH_SIZE).prefetch(buffer_size=tf.data.AUTOTUNE)
 
     return train_dataset, test_dataset
 

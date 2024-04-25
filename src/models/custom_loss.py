@@ -134,3 +134,105 @@ class trace_loss(tf.keras.losses.Loss):
         y_pred_trace = tf.square(tf.abs(self.apply_DFT(signal_operator)))
 
         return y_pred_trace
+
+class intensity_loss(tf.keras.losses.Loss):
+    """
+    Custom loss function to compute the MSE loss between the true and predicted values of the intensity in the
+    time domain and frequency domain
+
+    loss = mean((I_true_time_normalized - I_pred_time_normalized)^2) + mean((I_true_freq_normalized - I_pred_freq_normalized)^2)
+
+    Where I_true_time_normalized is the true intensity in the time domain normalized, I_pred_time_normalized is the predicted intensity in the time domain normalized,
+    I_true_freq_normalized is the true intensity in the frequency domain normalized and I_pred_freq_normalized is the predicted intensity in the frequency domain normalized
+
+    Args:
+        N (int): Number of points in the field
+        Δt (float): Time step of the field
+        name (str): Name of the loss function
+    """
+    def __init__(self, N, Δt, name="intensity_loss"):
+        super().__init__(name=name)
+        self.N = N
+        self.Δt = Δt
+
+        self.N_f = tf.cast(N, dtype=tf.float32) # Number of points in the trace (float)
+        self.Δt_f = tf.cast(Δt, dtype=tf.float32) # Time step (float)
+        self.Δω_f = 2 * np.pi / (self.N_f * self.Δt_f) # Frequency step (float)
+
+        self.t = tf.cast(tf.range(self.N), dtype=tf.float32) * self.Δt_f - self.N_f / 2 * self.Δt_f # Time array
+        self.omega = - np.pi / self.Δt_f + tf.cast(tf.range(self.N), dtype=tf.float32) * self.Δω_f # Angular frequency array
+
+        # Compute the phase factor of the fourier transform
+        # rₙ = Δt / 2π · e^{i n t₀ Δω} ; sⱼ = e^{i ω₀ tⱼ}
+        # Where n is the index of the time array, t₀ is the first time value, Δω is the
+        # angular frequency step, j is the index of the angular frequency array, ω₀ is the
+        # first angular frequency value and tⱼ is the j-th time value
+        self.r_n = tf.exp(tf.complex(tf.cast(0.0, dtype=tf.float32), self.t[0] * self.Δω_f * tf.cast(tf.range(self.N), dtype=tf.float32)))
+        self.r_n_conj = tf.math.conj(self.r_n)
+        self.r_n = self.r_n * tf.complex(self.Δt_f / (2 * np.pi), 0.0) # Including amplitude factor to the phase factor (r_n) to avoid multiplying by it later
+        self.s_j = tf.exp(tf.complex(0.0, self.omega[0] * self.t))
+        self.s_j_conj = tf.complex(self.Δω_f, 0.0) * tf.math.conj(self.s_j) # Including Δω_f to the phase factor (s_j) to avoid multiplying by it later
+
+        # For delaying each of the predicted electric fields, we need to multiply
+        # each of the spectrums by a phase factor: exp(complex(0, omega[j] * t[i]))
+        # where omega is the angular frequency array and t is the time array
+        # i and j are the indices of the arrays, so we need to create a matrix
+        # of shape (N, N) where each element is the product of the corresponding
+        # elements of the arrays
+        self.delay_factor = tf.exp(tf.complex(0.0, self.omega[None, :] * self.t[:, None]))
+
+    def call(self, y_true, y_pred):
+        """
+        Compute the MSE loss between the true and predicted values of the intensity in the time domain and frequency domain.
+
+        Args:
+            y_true (tf.Tensor): True electric field  (real and imaginary parts concatenated in the last dimension of the tensor)
+            y_pred (tf.Tensor): Predicted values of the electric field (real and imaginary parts concatenated in the last dimension of the tensor)
+
+        Returns:
+            tf.Tensor: MSE loss between the true and predicted values of the SHG-FROG traces    
+        """
+        # Take the real and imaginary parts of the predicted values and true values
+        # and construct a complex tensor that has the predicted electric field
+        y_pred_complex = tf.complex(y_pred[:, :self.N], y_pred[:, self.N:])
+        max_values = tf.reduce_max(tf.abs(y_pred_complex), axis=1, keepdims=True)
+        max_values = tf.cast(max_values, tf.complex64)
+        y_pred_complex = y_pred_complex / max_values
+
+        y_true_complex = tf.complex(y_true[:, :self.N], y_true[:, self.N:])
+
+        # Compute intensities
+        I_true_time = tf.abs(y_true_complex)
+        I_pred_time = tf.abs(y_pred_complex)
+
+        # Compute the spectrums of true and predicted values
+        I_true_freq = self.apply_DFT(y_true_complex)
+        I_pred_freq = self.apply_DFT(y_pred_complex)
+
+        # Normalize the spectrums
+        max_values = tf.reduce_max(tf.abs(I_true_freq), axis=1, keepdims=True)
+        max_values = tf.cast(max_values, tf.complex64)
+        I_true_freq = I_true_freq / max_values
+        max_values = tf.reduce_max(tf.abs(I_pred_freq), axis=1, keepdims=True)
+        max_values = tf.cast(max_values, tf.complex64)
+        I_pred_freq = I_pred_freq / max_values
+
+        # Compute intensities and convert to float32
+        I_true_freq = tf.abs(I_true_freq)
+        I_pred_freq = tf.abs(I_pred_freq)
+
+        # Compute the MSE loss and return it
+        return tf.reduce_mean((I_true_time - I_pred_time)**2) + tf.reduce_mean((I_true_freq - I_pred_freq)**2)
+
+    @tf.function
+    def apply_DFT(self, x):
+        """
+        Apply the Discrete Fourier Transform to the input signal x.
+
+        Args:
+            x (tf.Tensor): Input signal to apply the DFT to
+
+        Returns:
+            tf.Tensor: DFT of the input signal
+        """
+        return self.r_n[None, :] * tf.signal.ifft(x * self.s_j[None, :])

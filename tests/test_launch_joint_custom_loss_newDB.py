@@ -17,7 +17,7 @@ from wandb.keras import WandbCallback
 import path_helper
 
 from src.io import process_data_tfrecord
-from src.models import CNN, MultiResNet, DenseNet, trace_loss, trace_MSE, train_joint_loss
+from src.models import CNN, MultiResNet, DenseNet, trace_loss, trace_MSE, intensity_loss, intensity_MSE, train_joint_loss_intensity
 from src.visualization import resultsGUI
 
 if __name__ == "__main__":
@@ -43,7 +43,7 @@ if __name__ == "__main__":
         'learning_rate': 1e-3,
         'loss': 'trace_loss',
         'weight_trace_loss': 1,  # Weight for the trace loss
-        'weight_field_loss': 1,  # Weight for the mse loss
+        'weight_intensity_loss': 1,  # Weight for the mse loss
         'n_conv_layers': 2,  # Number of convolutional layers
         'n_filters_per_layer': 32,  # Number of filters per layer
         # Reduction factor for the number of filters in each layer
@@ -59,7 +59,7 @@ if __name__ == "__main__":
         'dense_activation': 'relu',  # Activation function for the dense layers
         'dropout': 0.05,  # Dropout rate, if None, no dropout is used
         'patience': 15,  # Patience for the early stopping
-        'training_size': 0.8,
+        'training_size': 0.9,
         'database': f'{NUMBER_OF_PULSES}_randomPulses_N{N}',
         'arquitecture': 'CNN',  # 'MultiResNet', 'DenseNet', 'CNN
         # The number of channels is the last element of the input shape
@@ -73,14 +73,15 @@ if __name__ == "__main__":
 
     # Initialize Weights & Biases with the config parameters
     run = wandb.init(project="MSE field vs intensity", config=config,
-                     name='Joint loss field',)
+                     name='Joint loss intensity',)
 
     # Build the model with the config
     if config['arquitecture'] == 'MultiResNet':
         model = MultiResNet()
 
     if config['arquitecture'] == 'DenseNet':
-        model = DenseNet([6, 12, 24, 16], input_shape=config['input_shape'], output_shape=config['output_shape'])
+        model = DenseNet([6, 12, 24, 16], input_shape=config['input_shape'],
+                         output_shape=config['output_shape'])
 
     if config['arquitecture'] == 'CNN':
         model = CNN(config['input_shape'], config['output_shape'],
@@ -105,44 +106,63 @@ if __name__ == "__main__":
     optimizer.learning_rate = config['learning_rate']
 
     trace_loss_fn = trace_loss(N, 1/N)
-    field_loss_fn = keras.losses.MeanSquaredError()
+    intensity_loss_fn = intensity_loss(N, 1/N)
 
     train_trace_metric = trace_MSE(N, 1/N)
     train_field_metric = keras.metrics.MeanSquaredError()
+    train_intensity_metric = intensity_MSE(N, 1/N)
 
     test_trace_metric = trace_MSE(N, 1/N)
     test_field_metric = keras.metrics.MeanSquaredError()
+    test_intensity_metric = intensity_MSE(N, 1/N)
 
     # Train the model with the config
-    train_joint_loss(train_dataset,
-                    test_dataset,
-                    model,
-                    optimizer,
-                    config['weight_trace_loss'],
-                    trace_loss_fn,
-                    config['weight_field_loss'],
-                    field_loss_fn,
-                    train_trace_metric,
-                    train_field_metric,
-                    test_trace_metric,
-                    test_field_metric,
-                    config['epochs'],
-                    config['log_step'],
-                    config['val_log_step'],
-                    config['patience']
-                    )
+    train_joint_loss_intensity(train_dataset,
+                               test_dataset,
+                               model,
+                               optimizer,
+                               config['weight_trace_loss'],
+                               trace_loss_fn,
+                               config['weight_intensity_loss'],
+                               intensity_loss_fn,
+                               train_trace_metric,
+                               train_field_metric,
+                               test_trace_metric,
+                               test_field_metric,
+                               train_intensity_metric,
+                               test_intensity_metric,
+                               config['epochs'],
+                               config['log_step'],
+                               config['val_log_step'],
+                               config['patience']
+                               )
 
     # Finish the run
     run.finish()
 
     # Save the model using tensorflow save method
-    # model.save(
-        # f"./trained_models/CNN/{config['arquitecture']}_test_N{N}_normTraces_total.tf")
+    model.save(
+        f"./trained_models/CNN/{config['arquitecture']}_test_N{N}_normTraces_total_TESTNOISE.tf")
 
-    import matplotlib.pyplot as plt
+    # model = keras.models.load_model(
+    #     f"./trained_models/CNN/{config['arquitecture']}_test_N{N}_normTraces_total_TESTNOISE.tf")
 
-    # Show the results
-    result_test = resultsGUI(model, test_dataset, int(0.2 * NUMBER_OF_PULSES), N, 1/N, norm_predictions=True)
-    result_test.plot()
+    # import matplotlib.pyplot as plt
+    # import scienceplots
 
-    plt.show()
+    # plt.rcParams.update({'font.size': 16})
+    # plt.style.use('science')
+    # plt.rcParams['figure.figsize'] = [6, 4]
+    # plt.rcParams['legend.frameon'] = True
+    # plt.rcParams['legend.fancybox'] = True
+    # plt.rcParams['axes.grid'] = True
+    # plt.rcParams['grid.alpha'] = 0.5
+    # plt.rcParams['grid.linestyle'] = '--'
+    # plt.rcParams['grid.linewidth'] = 0.5
+    # plt.rcParams['axes.axisbelow'] = True
+
+    # # Show the results
+    # result_test = resultsGUI(model, test_dataset, int(0.1 * NUMBER_OF_PULSES), N, 1/N, norm_predictions=True)
+    # result_test.plot()
+
+    # plt.show()

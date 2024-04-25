@@ -4,17 +4,31 @@ import matplotlib.pyplot as plt
 import path_helper
 from src.io import process_data_tfrecord
 
+import scienceplots
+
+plt.rcParams.update({'font.size': 16})
+plt.style.use('science')
+plt.rcParams['figure.figsize'] = [6, 4]
+plt.rcParams['legend.frameon'] = True
+plt.rcParams['legend.fancybox'] = True
+plt.rcParams['axes.grid'] = True
+plt.rcParams['grid.alpha'] = 0.5
+plt.rcParams['grid.linestyle'] = '--'
+plt.rcParams['grid.linewidth'] = 0.5
+plt.rcParams['axes.axisbelow'] = True
+
+
 if __name__ == '__main__':
     N = 128
-    NUMBER_OF_PULSES = 5000
+    NUMBER_OF_PULSES = 1000
     FILE_PATH = f"./data/generated/N{N}/{NUMBER_OF_PULSES}_randomNormalizedPulses_N{N}.tfrecords"
 
     # Load the dataset into a tf.data.Dataset object
     # pulse_dataset = load_and_norm_data(FILE_PATH, N, NUMBER_OF_PULSES)
-    train_dataset, test_dataset = process_data_tfrecord(N, NUMBER_OF_PULSES, FILE_PATH, 0.8, 32, norm_traces='individual')
+    train_dataset, test_dataset = process_data_tfrecord(N, NUMBER_OF_PULSES, FILE_PATH, 0.8, 32)
 
     # Take one random element of the dataset and plot the pulse and the SHG-FROG trace
-    for train_batch, target_batch  in train_dataset.take(33):
+    for train_batch, target_batch  in train_dataset.take(1):
         for target, train in zip(target_batch, train_batch):
             # Plot the pulse
             # The first N elements are the real part of the pulse, the last N are the imaginary part

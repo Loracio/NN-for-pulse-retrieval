@@ -21,11 +21,12 @@ import path_helper
 from src.io import process_data_tfrecord
 from src.models import CNN, train_CNN_custom_loss, trace_loss, MultiResNet, DenseNet
 from src.visualization import resultsGUI
+import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
     # Define pulse database parameters
     N = 128
-    NUMBER_OF_PULSES = 5000
+    NUMBER_OF_PULSES = 1000
     FILE_PATH = f"./data/generated/N{N}/{NUMBER_OF_PULSES}_randomNormalizedPulses_N{N}.tfrecords"
     # Handle error if path does not exist
     try:
@@ -42,7 +43,7 @@ if __name__ == "__main__":
         'log_step': 200,
         'val_log_step': 200,
         'optimizer': 'adam',
-        'learning_rate': 0.01,
+        'learning_rate': 0.05,
         'loss': 'trace_loss',
         'train_metrics': 'MeanSquaredError',
         'val_metrics': 'MeanSquaredError',
@@ -58,8 +59,8 @@ if __name__ == "__main__":
         'reduce_dense_factor': 2, # Reduction factor for the number of neurons in each layer in the dense layers
         'dense_activation': 'relu', # Activation function for the dense layers
         'dropout': 0.05, # Dropout rate, if None, no dropout is used
-        'patience': 15, # Patience for the early stopping
-        'training_size': 0.8,
+        'patience': 50, # Patience for the early stopping
+        'training_size': 0.9,
         'database': f'{NUMBER_OF_PULSES}_randomPulses_N{N}',
         'arquitecture': 'CNN', # 'MultiResNet', 'DenseNet', 'CNN
         'input_shape': (N, N, 1), # The number of channels is the last element of the input shape
@@ -67,11 +68,11 @@ if __name__ == "__main__":
     }
 
     # Load and process the pulse database
-    train_dataset, test_dataset = process_data_tfrecord(N, NUMBER_OF_PULSES, FILE_PATH, config['training_size'], config['batch_size'])
+    train_dataset, test_dataset = process_data_tfrecord(N, NUMBER_OF_PULSES, FILE_PATH, config['training_size'], config['batch_size'], add_noise=False, noise_level=0.01, mask=True, mask_tolerance=1e-3)
 
     # Initialize Weights & Biases with the config parameters
-    run = wandb.init(project="N=128", config=config,
-                     name='CNN test with new database and trace norm',)
+    run = wandb.init(project="PP Presentation", config=config,
+                     name='CNN trace loss WITHOUT last layer activation #2',)
 
     # Build the model with the config
     if config['arquitecture'] == 'MultiResNet':

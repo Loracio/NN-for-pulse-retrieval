@@ -1,6 +1,7 @@
 """
-In this example, we will use Weights & Biases to log the training process of a CNN using a custom loss function
-that takes into account the MSE in the trace and the MSE in the electric field.
+In this example, we will use Weights & Biases to log the training process of aCNN using a 
+custom training process in which the data are first trained on the MSE of the field and then
+on the trace loss.
 
 The Neural Network will try to predict the Electric field of a pulse in the time domain from its SHG-FROG trace.
 The input data is the SHG-FROG trace of the pulse (NxN vector), and the target data is the
@@ -17,7 +18,7 @@ from wandb.keras import WandbCallback
 import path_helper
 
 from src.io import process_data_tfrecord
-from src.models import CNN, MultiResNet, DenseNet, trace_loss, trace_MSE, train_joint_loss
+from src.models import CNN, MultiResNet, DenseNet, trace_loss, trace_MSE, train_combined_loss_training
 from src.visualization import resultsGUI
 
 if __name__ == "__main__":
@@ -35,31 +36,32 @@ if __name__ == "__main__":
 
     # Define config parameters for wandb
     config = {
-        'epochs': 250,
-        'batch_size': 256,
+        'start_with': 0,  # 0 : Start with the field loss, 1 : Start with the trace loss
+        'trace_epochs': 25,
+        'field_epochs': 10,
+        'reps': 25,  # Number of repetitions of the combined training
+        'batch_size': 64,
         'log_step': 200,
         'val_log_step': 200,
         'optimizer': 'adam',
-        'learning_rate': 1e-3,
+        'learning_rate': 0.001,
         'loss': 'trace_loss',
-        'weight_trace_loss': 1,  # Weight for the trace loss
-        'weight_field_loss': 1,  # Weight for the mse loss
-        'n_conv_layers': 2,  # Number of convolutional layers
-        'n_filters_per_layer': 32,  # Number of filters per layer
+        'n_conv_layers': 4,  # Number of convolutional layers
+        'n_filters_per_layer': 64,  # Number of filters per layer
         # Reduction factor for the number of filters in each layer
         'reduce_filter_factor': 0.25,
         'kernel_size': (3, 3),  # Kernel size
         'pool': True,  # Use pooling layers
         'pool_size': (2, 2),  # Pool size
         'conv_activation': 'relu',  # Activation function for the convolutional layers
-        'n_dense_layers': 3,  # Number of dense layers
-        'n_neurons_per_layer': 512,  # Number of neurons per dense layer
+        'n_dense_layers': 2,  # Number of dense layers
+        'n_neurons_per_layer': 1024,  # Number of neurons per dense layer
         # Reduction factor for the number of neurons in each layer in the dense layers
         'reduce_dense_factor': 2,
         'dense_activation': 'relu',  # Activation function for the dense layers
         'dropout': 0.05,  # Dropout rate, if None, no dropout is used
-        'patience': 15,  # Patience for the early stopping
-        'training_size': 0.8,
+        'patience': 500,  # Patience for the early stopping
+        'training_size': 0.9,
         'database': f'{NUMBER_OF_PULSES}_randomPulses_N{N}',
         'arquitecture': 'CNN',  # 'MultiResNet', 'DenseNet', 'CNN
         # The number of channels is the last element of the input shape
@@ -69,18 +71,18 @@ if __name__ == "__main__":
 
     # Load and process the pulse database
     train_dataset, test_dataset = process_data_tfrecord(
-        N, NUMBER_OF_PULSES, FILE_PATH, config['training_size'], config['batch_size'], add_noise=False, noise_level=0.01, mask=True, mask_tolerance=1e-3)
+        N, NUMBER_OF_PULSES, FILE_PATH, config['training_size'], config['batch_size'])
 
     # Initialize Weights & Biases with the config parameters
-    run = wandb.init(project="MSE field vs intensity", config=config,
-                     name='Joint loss field',)
+    run = wandb.init(project="PP Presentation", config=config,
+                     name='MSE corrected field 1024',)
 
     # Build the model with the config
     if config['arquitecture'] == 'MultiResNet':
         model = MultiResNet()
 
     if config['arquitecture'] == 'DenseNet':
-        model = DenseNet([6, 12, 24, 16], input_shape=config['input_shape'], output_shape=config['output_shape'])
+        model = DenseNet([6, 12, 24, 16])
 
     if config['arquitecture'] == 'CNN':
         model = CNN(config['input_shape'], config['output_shape'],
@@ -114,35 +116,27 @@ if __name__ == "__main__":
     test_field_metric = keras.metrics.MeanSquaredError()
 
     # Train the model with the config
-    train_joint_loss(train_dataset,
-                    test_dataset,
-                    model,
-                    optimizer,
-                    config['weight_trace_loss'],
-                    trace_loss_fn,
-                    config['weight_field_loss'],
-                    field_loss_fn,
-                    train_trace_metric,
-                    train_field_metric,
-                    test_trace_metric,
-                    test_field_metric,
-                    config['epochs'],
-                    config['log_step'],
-                    config['val_log_step'],
-                    config['patience']
-                    )
+    train_combined_loss_training(train_dataset,
+                                 test_dataset,
+                                 model,
+                                 optimizer,
+                                 trace_loss_fn,
+                                 field_loss_fn,
+                                 train_trace_metric,
+                                 train_field_metric,
+                                 test_trace_metric,
+                                 test_field_metric,
+                                 config['field_epochs'],
+                                 config['trace_epochs'],
+                                 config['start_with'],
+                                 config['reps'],
+                                 config['log_step'],
+                                 config['val_log_step'],
+                                 config['patience'])
 
     # Finish the run
     run.finish()
 
     # Save the model using tensorflow save method
-    # model.save(
-        # f"./trained_models/CNN/{config['arquitecture']}_test_N{N}_normTraces_total.tf")
-
-    import matplotlib.pyplot as plt
-
-    # Show the results
-    result_test = resultsGUI(model, test_dataset, int(0.2 * NUMBER_OF_PULSES), N, 1/N, norm_predictions=True)
-    result_test.plot()
-
-    plt.show()
+    model.save(
+        f"./trained_models/CNN/{config['arquitecture']}_test_N{N}_normTraces_combinedTraining_33.tf")

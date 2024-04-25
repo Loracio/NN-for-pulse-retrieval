@@ -220,7 +220,7 @@ def conv_block(x, growth_rate):
     x = keras.layers.Concatenate()([x, x1])
     return x
 
-def DenseNet(blocks, growth_rate=64, reduction=0.5, input_shape=(64, 64, 1), output_shape=128):
+def DenseNet(blocks, growth_rate=64, reduction=0.5, input_shape=(128, 128, 1), output_shape=256):
     """
     Create a DenseNet model with the specified parameters.
     A DenseNet is a CNN that uses dense blocks and transition blocks instead of standard convolutional layers.

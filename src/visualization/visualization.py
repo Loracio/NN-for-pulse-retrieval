@@ -174,8 +174,13 @@ class resultsGUI():
         self.field_errors = []
 
         for i in range(self.NUMBER_OF_PULSES):
+
+            # Normalize the predicted electric field
+            predicted_electric_field = self.predicted_electric_fields[i] / np.max(
+                np.abs(self.predicted_electric_fields[i]))
+
             self.field_errors.append(np.mean(
-                np.abs(self.true_electric_fields[i] - self.predicted_electric_fields[i])**2))
+                np.abs(self.true_electric_fields[i] - predicted_electric_field)**2))
 
     def compute_trace(self, y_pred_complex):
         """
@@ -212,26 +217,46 @@ class resultsGUI():
 
         return y_pred_trace
 
+    # def compute_trace_errors(self,):
+    #     """
+    #     Compute the trace errors of the predicted traces with respect to the true traces.
+
+    #         R = (∑ₘₙ [Tₘₙᵐᵉᵃˢ - μ·Tₘₙ]²)½ / [N² (maxₘₙ Tₘₙᵐᵉᵃˢ)²]½
+
+    #     Where μ is a scale factor given by:
+    #         μ = ∑ₘₙ (Tₘₙᵐᵉᵃˢ · Tₘₙ) / (∑ₘₙ Tₘₙ²)
+
+    #     And Tₘₙᵐᵉᵃˢ is the true trace, Tₘₙ is the predicted trace and m and n are the indices of the trace
+    #     """
+    #     self.trace_errors = []
+
+    #     for i in range(self.NUMBER_OF_PULSES):
+    #         # Compute the scale factor
+    #         μ = np.sum(self.true_traces[i] * self.predicted_traces[i]
+    #                    ) / np.sum(self.predicted_traces[i]**2)
+    #         # Append trace error
+    #         self.trace_errors.append(np.sqrt(np.sum(
+    #             (self.true_traces[i] - μ * self.predicted_traces[i])**2) / (self.N**2 * np.max(self.true_traces[i])**2)))
+
     def compute_trace_errors(self,):
         """
-        Compute the trace errors of the predicted traces with respect to the true traces.
+        Compute the trace errors of the predicted traces with respect to the true traces as a MSE
 
-            R = (∑ₘₙ [Tₘₙᵐᵉᵃˢ - μ·Tₘₙ]²)½ / [N² (maxₘₙ Tₘₙᵐᵉᵃˢ)²]½
 
-        Where μ is a scale factor given by:
-            μ = ∑ₘₙ (Tₘₙᵐᵉᵃˢ · Tₘₙ) / (∑ₘₙ Tₘₙ²)
-
-        And Tₘₙᵐᵉᵃˢ is the true trace, Tₘₙ is the predicted trace and m and n are the indices of the trace
         """
         self.trace_errors = []
 
         for i in range(self.NUMBER_OF_PULSES):
-            # Compute the scale factor
-            μ = np.sum(self.true_traces[i] * self.predicted_traces[i]
-                       ) / np.sum(self.predicted_traces[i]**2)
+
+            # Normalize predicted trace
+            predicted_trace = self.predicted_traces[i] / np.max(
+                np.abs(self.predicted_traces[i]))
+
             # Append trace error
-            self.trace_errors.append(np.sqrt(np.sum(
-                (self.true_traces[i] - μ * self.predicted_traces[i])**2) / (self.N**2 * np.max(self.true_traces[i])**2)))
+            self.trace_errors.append((np.sum(
+                (self.true_traces[i] - predicted_trace)**2) / (self.N * self.N)))
+
+                
 
     def plot(self,):
 

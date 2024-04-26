@@ -17,13 +17,13 @@ from wandb.keras import WandbCallback
 import path_helper
 
 from src.io import process_data_tfrecord
-from src.models import CNN, MultiResNet, DenseNet, trace_loss, trace_MSE, train_joint_loss
+from src.models import CNN, MultiResNet, DenseNet, trace_loss, trace_MSE, train_joint_loss, intensity_MSE
 from src.visualization import resultsGUI
 
 if __name__ == "__main__":
     # Define pulse database parameters
     N = 128
-    NUMBER_OF_PULSES = 1000
+    NUMBER_OF_PULSES = 2000
     FILE_PATH = f"./data/generated/N{N}/{NUMBER_OF_PULSES}_randomNormalizedPulses_N{N}.tfrecords"
     # Handle error if path does not exist
     try:
@@ -36,14 +36,14 @@ if __name__ == "__main__":
     # Define config parameters for wandb
     config = {
         'epochs': 250,
-        'batch_size': 256,
+        'batch_size': 512,
         'log_step': 200,
         'val_log_step': 200,
         'optimizer': 'adam',
         'learning_rate': 1e-3,
         'loss': 'trace_loss',
         'weight_trace_loss': 1,  # Weight for the trace loss
-        'weight_field_loss': 1,  # Weight for the mse loss
+        'weight_field_loss': 0,  # Weight for the mse loss
         'n_conv_layers': 2,  # Number of convolutional layers
         'n_filters_per_layer': 32,  # Number of filters per layer
         # Reduction factor for the number of filters in each layer
@@ -52,7 +52,7 @@ if __name__ == "__main__":
         'pool': True,  # Use pooling layers
         'pool_size': (2, 2),  # Pool size
         'conv_activation': 'relu',  # Activation function for the convolutional layers
-        'n_dense_layers': 3,  # Number of dense layers
+        'n_dense_layers': 2,  # Number of dense layers
         'n_neurons_per_layer': 512,  # Number of neurons per dense layer
         # Reduction factor for the number of neurons in each layer in the dense layers
         'reduce_dense_factor': 2,
@@ -73,7 +73,7 @@ if __name__ == "__main__":
 
     # Initialize Weights & Biases with the config parameters
     run = wandb.init(project="MSE field vs intensity", config=config,
-                     name='Joint loss field',)
+                     name='Joint loss field BS=8 N=5000',)
 
     # Build the model with the config
     if config['arquitecture'] == 'MultiResNet':
@@ -109,9 +109,11 @@ if __name__ == "__main__":
 
     train_trace_metric = trace_MSE(N, 1/N)
     train_field_metric = keras.metrics.MeanSquaredError()
+    train_intensity_metric = intensity_MSE(N, 1/N)
 
     test_trace_metric = trace_MSE(N, 1/N)
     test_field_metric = keras.metrics.MeanSquaredError()
+    test_intensity_metric = intensity_MSE(N, 1/N)
 
     # Train the model with the config
     train_joint_loss(train_dataset,
@@ -124,8 +126,10 @@ if __name__ == "__main__":
                     field_loss_fn,
                     train_trace_metric,
                     train_field_metric,
+                    train_intensity_metric,
                     test_trace_metric,
                     test_field_metric,
+                    test_intensity_metric,
                     config['epochs'],
                     config['log_step'],
                     config['val_log_step'],
@@ -136,13 +140,13 @@ if __name__ == "__main__":
     run.finish()
 
     # Save the model using tensorflow save method
-    # model.save(
-        # f"./trained_models/CNN/{config['arquitecture']}_test_N{N}_normTraces_total.tf")
+    model.save(
+        f"./trained_models/CNN/{config['arquitecture']}_test_N{N}_normTraces_total.tf")
 
     import matplotlib.pyplot as plt
 
     # Show the results
-    result_test = resultsGUI(model, test_dataset, int(0.2 * NUMBER_OF_PULSES), N, 1/N, norm_predictions=True)
+    result_test = resultsGUI(model, test_dataset, int(0.2 * NUMBER_OF_PULSES), N, 1/N, norm_predictions=True, phase_blanking=True, phase_blanking_threshold=1e-5)
     result_test.plot()
 
     plt.show()

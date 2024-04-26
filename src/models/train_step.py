@@ -108,7 +108,7 @@ def train_step_CNN_custom_loss(x, y, model, optimizer, custom_loss_fn, train_acc
     return loss_value
 
 @tf.function
-def train_step_joint_loss(x, y, model, optimizer, weight_trace_loss, trace_loss_fn, weight_field_loss, mse_loss_fn, trace_acc_metric, field_acc_metric):
+def train_step_joint_loss(x, y, model, optimizer, weight_trace_loss, trace_loss_fn, weight_field_loss, mse_loss_fn, trace_acc_metric, field_acc_metric, intensity_acc_metric):
     """
     Training step of a joint loss function (trace mse + mse).
 
@@ -142,6 +142,8 @@ def train_step_joint_loss(x, y, model, optimizer, weight_trace_loss, trace_loss_
     trace_acc_metric.update_state(x, results)
     # Update field MSE metric
     field_acc_metric.update_state(y, results_normalized)
+    # Update intensity MSE metric
+    intensity_acc_metric.update_state(y, results)
 
 
     return loss_value

@@ -313,7 +313,7 @@ def train_CNN_custom_loss(train_dataset, test_dataset, model, optimizer, custom_
                    })
 
 
-def train_joint_loss(train_dataset, test_dataset, model, optimizer, weight_trace_loss, trace_loss, weight_field_loss, field_loss, train_trace_metric, train_field_metric, test_trace_metric, test_field_metric, epochs, log_step, val_log_step, patience):
+def train_joint_loss(train_dataset, test_dataset, model, optimizer, weight_trace_loss, trace_loss, weight_field_loss, field_loss, train_trace_metric, train_field_metric, train_intensity_metric, test_trace_metric, test_field_metric, test_intensity_metric, epochs, log_step, val_log_step, patience):
     """
     Training step that uses a joint custom loss that takes into account the trace MSE and the electric field MSE.
 
@@ -328,6 +328,7 @@ def train_joint_loss(train_dataset, test_dataset, model, optimizer, weight_trace
         field_loss (tf.keras.losses): Field loss function to use.
         trace_acc_metric (tf.keras.metrics): Accuracy metric that computes the MSE of the trace.
         field_acc_metric (tf.keras.metrics): Accuracy metric that computes the MSe of the field.
+        intensity_acc_metric (tf.keras.metrics): Accuracy metric that computes the MSE of the intensity.
         epochs (int): Number of epochs to train.
         log_step (int): Number of steps to log training metrics.
         val_log_step (int): Number of steps to log validation metrics.
@@ -346,14 +347,14 @@ def train_joint_loss(train_dataset, test_dataset, model, optimizer, weight_trace
         for step, (x_batch_train, y_batch_train) in enumerate(train_dataset):
             loss_value = train_step_joint_loss(x_batch_train, y_batch_train,
                                     model, optimizer,
-                                    weight_trace_loss, trace_loss, weight_field_loss, field_loss, train_trace_metric, train_field_metric)
+                                    weight_trace_loss, trace_loss, weight_field_loss, field_loss, train_trace_metric, train_field_metric, train_intensity_metric)
             average_loss_value = tf.reduce_mean(loss_value)
             train_loss.append(float(average_loss_value))
 
         # Run a validation loop at the end of each epoch
         for step, (x_batch_val, y_batch_val) in enumerate(test_dataset):
             val_loss_value = test_step_joint_loss(x_batch_val, y_batch_val,
-                                       model, weight_trace_loss, trace_loss, weight_field_loss, field_loss, test_trace_metric, test_field_metric)
+                                       model, weight_trace_loss, trace_loss, weight_field_loss, field_loss, test_trace_metric, test_field_metric, test_intensity_metric)
             average_loss_value = tf.reduce_mean(val_loss_value)
             val_loss.append(float(average_loss_value))
 
@@ -375,19 +376,25 @@ def train_joint_loss(train_dataset, test_dataset, model, optimizer, weight_trace
         # Display metrics at the end of each epoch
         train_trace_acc = train_trace_metric.result()
         train_field_acc = train_field_metric.result()
+        train_intensity_acc = train_intensity_metric.result()
         print("Training trace acc over epoch: %.4e" % (float(train_trace_acc),))
         print("Training field acc over epoch: %.4e" % (float(train_field_acc),))
+        print("Training intensity acc over epoch: %.4e" % (float(train_intensity_acc),))
 
         test_trace_acc = test_trace_metric.result()
         test_field_acc = test_field_metric.result()
+        test_intensity_acc = test_intensity_metric.result()
         print("Validation trace acc: %.4e" % (float(test_trace_acc),))
         print("Validation field acc: %.4e" % (float(test_field_acc),))
+        print("Validation intensity acc: %.4e" % (float(test_intensity_acc),))
 
         # Reset metrics at the end of each epoch
         train_trace_metric.reset_states()
         train_field_metric.reset_states()
+        train_intensity_metric.reset_states()
         test_trace_metric.reset_states()
         test_field_metric.reset_states()
+        test_intensity_metric.reset_states()
 
 
         # log metrics using wandb.log
@@ -395,9 +402,11 @@ def train_joint_loss(train_dataset, test_dataset, model, optimizer, weight_trace
                    'Train joint loss (trace MSE + field MSE)': np.mean(train_loss),
                    'Train trace MSE': float(train_trace_acc),
                    'Train field MSE': float(train_field_acc),
+                   'Train intensity MSE': float(train_intensity_acc),
                    'Test joint loss (trace MSE + field MSE)': np.mean(val_loss),
                    'Test trace MSE': float(test_trace_acc),
-                   'Test field MSE': float(test_field_acc)
+                   'Test field MSE': float(test_field_acc),
+                   'Test intensity MSE': float(test_intensity_acc)
                    })
 
 

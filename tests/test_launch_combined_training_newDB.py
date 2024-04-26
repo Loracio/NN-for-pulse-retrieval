@@ -24,7 +24,7 @@ from src.visualization import resultsGUI
 if __name__ == "__main__":
     # Define pulse database parameters
     N = 128
-    NUMBER_OF_PULSES = 1000
+    NUMBER_OF_PULSES = 4000
     FILE_PATH = f"./data/generated/N{N}/{NUMBER_OF_PULSES}_randomNormalizedPulses_N{N}.tfrecords"
     # Handle error if path does not exist
     try:
@@ -37,17 +37,17 @@ if __name__ == "__main__":
     # Define config parameters for wandb
     config = {
         'start_with': 0,  # 0 : Start with the field loss, 1 : Start with the trace loss
-        'trace_epochs': 25,
-        'field_epochs': 10,
-        'reps': 25,  # Number of repetitions of the combined training
-        'batch_size': 64,
+        'trace_epochs': 250,
+        'field_epochs': 50,
+        'reps': 1,  # Number of repetitions of the combined training
+        'batch_size': 256,
         'log_step': 200,
         'val_log_step': 200,
         'optimizer': 'adam',
         'learning_rate': 0.001,
         'loss': 'trace_loss',
-        'n_conv_layers': 4,  # Number of convolutional layers
-        'n_filters_per_layer': 64,  # Number of filters per layer
+        'n_conv_layers': 2,  # Number of convolutional layers
+        'n_filters_per_layer': 32,  # Number of filters per layer
         # Reduction factor for the number of filters in each layer
         'reduce_filter_factor': 0.25,
         'kernel_size': (3, 3),  # Kernel size
@@ -55,12 +55,12 @@ if __name__ == "__main__":
         'pool_size': (2, 2),  # Pool size
         'conv_activation': 'relu',  # Activation function for the convolutional layers
         'n_dense_layers': 2,  # Number of dense layers
-        'n_neurons_per_layer': 1024,  # Number of neurons per dense layer
+        'n_neurons_per_layer': 512,  # Number of neurons per dense layer
         # Reduction factor for the number of neurons in each layer in the dense layers
         'reduce_dense_factor': 2,
         'dense_activation': 'relu',  # Activation function for the dense layers
         'dropout': 0.05,  # Dropout rate, if None, no dropout is used
-        'patience': 500,  # Patience for the early stopping
+        'patience': 100,  # Patience for the early stopping
         'training_size': 0.9,
         'database': f'{NUMBER_OF_PULSES}_randomPulses_N{N}',
         'arquitecture': 'CNN',  # 'MultiResNet', 'DenseNet', 'CNN
@@ -74,8 +74,8 @@ if __name__ == "__main__":
         N, NUMBER_OF_PULSES, FILE_PATH, config['training_size'], config['batch_size'])
 
     # Initialize Weights & Biases with the config parameters
-    run = wandb.init(project="PP Presentation", config=config,
-                     name='MSE corrected field 1024',)
+    run = wandb.init(project="MSE field vs intensity", config=config,
+                     name='Combined training',)
 
     # Build the model with the config
     if config['arquitecture'] == 'MultiResNet':

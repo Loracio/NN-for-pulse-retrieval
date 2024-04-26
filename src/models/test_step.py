@@ -89,7 +89,7 @@ def test_step_CNN_custom_loss(x, y, model, custom_loss_fn, test_acc_metric):
     return loss_value
 
 @tf.function
-def test_step_joint_loss(x, y, model, weight_trace_loss, trace_loss_fn, weight_field_loss, mse_loss_fn, trace_acc_metric, field_acc_metric):
+def test_step_joint_loss(x, y, model, weight_trace_loss, trace_loss_fn, weight_field_loss, mse_loss_fn, trace_acc_metric, field_acc_metric, intensity_acc_metric):
     """
     Example test step for a model with a joint loss function.
 
@@ -122,6 +122,7 @@ def test_step_joint_loss(x, y, model, weight_trace_loss, trace_loss_fn, weight_f
 
     trace_acc_metric.update_state(x, val_results)
     field_acc_metric.update_state(y, results_normalized)
+    intensity_acc_metric.update_state(y, val_results)
 
     return loss_value
 

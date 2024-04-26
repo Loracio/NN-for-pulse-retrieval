@@ -217,3 +217,90 @@ def read_tfrecord(FILE_PATH, N, NUMBER_OF_PULSES, BATCH_SIZE, add_noise=False, n
     dataset = tf.data.Dataset.zip((tbp_dataset, trace_dataset, field_dataset))
 
     return dataset
+
+def _parse_functionNoisy(example_proto):
+    # Define the features in the TFRecord file
+    feature_description = {
+        'real_field': tf.io.FixedLenFeature([], tf.string),
+        'imag_field': tf.io.FixedLenFeature([], tf.string),
+        'noisy_trace': tf.io.FixedLenFeature([], tf.string),
+        'real_retrieved_field': tf.io.FixedLenFeature([], tf.string),
+        'imag_retrieved_field': tf.io.FixedLenFeature([], tf.string),
+    }
+    # Parse the input tf.Example proto using the dictionary above.
+    parsed_example = tf.io.parse_single_example(example_proto, feature_description)
+    
+    # Decode the tensors from their serialized form
+    real_field = tf.io.parse_tensor(parsed_example['real_field'], out_type=tf.float64)
+    imag_field = tf.io.parse_tensor(parsed_example['imag_field'], out_type=tf.float64)
+    noisy_trace = tf.io.parse_tensor(parsed_example['noisy_trace'], out_type=tf.float64)
+    real_retrieved_field = tf.io.parse_tensor(parsed_example['real_retrieved_field'], out_type=tf.float64)
+    imag_retrieved_field = tf.io.parse_tensor(parsed_example['imag_retrieved_field'], out_type=tf.float64)
+
+    return real_field, imag_field, noisy_trace, real_retrieved_field, imag_retrieved_field
+
+def read_tfrecord_noisyTraces(FILE_PATH, N, NUMBER_OF_PULSES, BATCH_SIZE):
+    """
+    Read the TFRecord file and return a dataset with the pulses and their SHG-FROG noisy traces.
+    The pulses come already normalized.
+    Traces are computed and normalized in this function to compare to the noisy traces.
+
+
+    Args:
+        FILE_PATH: str
+            Path to the TFRecord file
+        N: int
+            Number of points in the SHG-FROG trace
+        NUMBER_OF_PULSES: int
+            Number of pulses in the database
+        BATCH_SIZE: int
+            Size of the batches to use in the dataset
+
+    Returns:
+        dataset: tf.data.Dataset
+            Dataset with the pulse database
+    """
+    # Create a dataset from the TFRecord file
+    raw_dataset = tf.data.TFRecordDataset(FILE_PATH)
+
+    # Map the parse function over the dataset
+    parsed_dataset = raw_dataset.map(_parse_functionNoisy)
+
+    # Create empty datasets
+    field_dataset = tf.data.Dataset.from_tensor_slices([])
+    retrieved_field_dataset = tf.data.Dataset.from_tensor_slices([])
+
+    # noisy_trace_dataset = tf.data.Dataset.from_tensor_slices([])
+    noisy_trace_dataset = parsed_dataset.map(lambda real_field, imag_field, noisy_trace, real_retrieved_field, imag_retrieved_field: noisy_trace)
+
+    for real_field, imag_field, noisy_trace, real_retrieved_field, imag_retrieved_field in parsed_dataset:
+        # Concat the real and imaginary parts into a single tensor
+        pulse = tf.concat([tf.reshape(real_field, (1, N)), tf.reshape(imag_field, (1,N))], axis=1)
+
+        # Add the pulse to the field_dataset
+        field_dataset = field_dataset.concatenate(
+            tf.data.Dataset.from_tensor_slices(tf.cast(pulse, tf.float32)))
+
+        # Concat the real and imaginary parts into a single tensor
+        retrieved_field = tf.concat([tf.reshape(real_retrieved_field, (1, N)), tf.reshape(imag_retrieved_field, (1,N))], axis=1)
+
+        # Add the retrieved field to the retrieved_field_dataset
+        retrieved_field_dataset = retrieved_field_dataset.concatenate(
+            tf.data.Dataset.from_tensor_slices(tf.cast(retrieved_field, tf.float32)))
+        
+
+    # Compute trace of the electric fields
+    fourier = fourier_utils(N, 1/N)
+    # We pass it as a batch for performance (it's faster to compute the fourier transform of a batch of pulses)
+    # and less memory intensive
+    trace_dataset = field_dataset.batch(BATCH_SIZE).map(fourier.compute_trace)
+
+    # Norm the traces by dividing by the maximum value of each trace
+    trace_dataset = trace_dataset.map(lambda x: x / tf.reduce_max(tf.abs(x), axis=[1, 2], keepdims=True))
+
+    # Unbatch the dataset
+    trace_dataset = trace_dataset.unbatch()
+
+    dataset = tf.data.Dataset.zip((noisy_trace_dataset, trace_dataset, field_dataset, retrieved_field_dataset))
+
+    return dataset

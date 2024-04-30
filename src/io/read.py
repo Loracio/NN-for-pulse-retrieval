@@ -141,7 +141,7 @@ def _parse_function(example_proto):
     real_field = tf.io.parse_tensor(parsed_example['real_field'], out_type=tf.float64)
     imag_field = tf.io.parse_tensor(parsed_example['imag_field'], out_type=tf.float64)
     
-    return real_field, imag_field, tbp
+    return tbp, real_field, imag_field
 
 def read_tfrecord(FILE_PATH, N, NUMBER_OF_PULSES, BATCH_SIZE, add_noise=False, noise_level=0.01, mask=False, mask_tolerance=1e-3):
     """
@@ -186,7 +186,7 @@ def read_tfrecord(FILE_PATH, N, NUMBER_OF_PULSES, BATCH_SIZE, add_noise=False, n
     field_dataset = tf.data.Dataset.from_tensor_slices([])
 
     for tbp, real_field, imag_field in parsed_dataset:
-
+        
         # Save the TBP in the tbp_dataset
         tbp_dataset = tbp_dataset.concatenate(
             tf.data.Dataset.from_tensor_slices(tf.reshape(tf.cast(tbp, tf.float32), (1,))))

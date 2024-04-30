@@ -3,6 +3,7 @@ import numpy as np
 import wandb
 from .train_step import *
 from .test_step import *
+from ..io import load_data_from_batches
 
 def train_MLP(train_dataset, test_dataset, model, optimizer, loss_fn, train_acc_metric, test_acc_metric, epochs, log_step, val_log_step, patience):
     """
@@ -746,4 +747,137 @@ def train_combined_loss_training_intensity(train_dataset, test_dataset, model, o
                    'Test trace MSE': float(test_trace_acc),
                    'Test field MSE': float(test_field_acc),
                    'Test intensity MSE': float(test_intensity_acc)
+                   })
+
+
+def train_combined_loss_training_BD(trainFILENAMES, validationFILENAMES, N, BATCH_SIZE, model, optimizer, trace_loss_fn, field_loss_fn, train_trace_metric, train_field_metric, test_trace_metric, test_field_metric, field_epochs, trace_epochs, start_with, reps, log_step, val_log_step, patience):
+    """
+    Training step that uses a combined training in which some steps are done with the trace loss function and
+    others with the field loss function.
+
+    This function is thought to be used with a lot of data. As GPU memory is rapidly consumed, the training and
+    validation steps are done loading first the batch of data to train, and when trained free this memory and open
+    another. This way, the memory is freed after each batch.
+
+    Args:
+        trainFILENAMES (list): List of filenames of the test data.
+        validationFILENAMES (list): List of filenames of the validation data.
+        N (int): Number of samples of the pulse.
+        BATCH_SIZE (int): Batch size.
+        model (tf.keras.Model): Model to train.
+        optimizer (tf.keras.optimizers): Optimizer to use.
+        trace_loss_fn (tf.keras.losses): Trace loss function to use.
+        field_loss_fn (tf.keras.losses): Field loss function to use.
+        train_trace_metric (tf.keras.metrics): Accuracy metric that computes the MSE of the trace.
+        train_field_metric (tf.keras.metrics): Accuracy metric that computes the MSE of the field.
+        test_trace_metric (tf.keras.metrics): Accuracy metric that computes the MSE of the trace.
+        test_field_metric (tf.keras.metrics): Accuracy metric that computes the MSe of the field.
+        field_epochs (int): Number of epochs to train with the field loss function.
+        trace_epochs (int): Number of epochs to train with the trace loss function.
+        start_with (int): Start training with a certain loss function: 1 for trace, 0 for field.
+        reps (int): Number of repetitions of the combined training.
+        log_step (int): Number of steps to log training metrics.
+        val_log_step (int): Number of steps to log validation metrics.
+        patience (int): Number of epochs to wait for improvement in validation loss before early stopping.
+    """
+
+    best_val_loss = float('inf')
+    patience_counter = 0
+
+    mode = start_with
+    mode_epoch_counter = 0 # counter to change mode after a certain number of epochs
+
+    for epoch in range((field_epochs + trace_epochs) * reps):
+
+        if mode == 0:
+            print("\nStart of total epoch %d with field loss epoch %d" % (epoch, mode_epoch_counter))
+
+        if mode == 1:
+            print("\nStart of total epoch %d with trace loss epoch %d" % (epoch, mode_epoch_counter))
+
+        train_loss = []
+        val_loss = []
+
+        # Open each one of the files for training (that contain each batch) and train with it
+        for i, filename in enumerate(trainFILENAMES):
+            # Load the data
+            x_batch_train, y_batch_train = load_data_from_batches(filename, N, BATCH_SIZE)
+            loss_value = train_step_combined_loss_training(x_batch_train, y_batch_train,
+                                    model, optimizer, mode, trace_loss_fn, field_loss_fn, train_trace_metric, train_field_metric)
+            average_loss_value = tf.reduce_mean(loss_value)
+            train_loss.append(float(average_loss_value))
+        
+            print(f"Processed batch {i}")
+            # free the data assigned to x_batch_train and y_batch_train
+            del x_batch_train
+            del y_batch_train
+
+        # Run a validation loop at the end of each epoch
+        for filename in validationFILENAMES:
+            # Load the data
+            x_batch_val, y_batch_val = load_data_from_batches(filename, N, BATCH_SIZE)
+            val_loss_value = test_step_combined_loss_training(x_batch_val, y_batch_val,
+                                        model, mode, trace_loss_fn, field_loss_fn, test_trace_metric, test_field_metric)
+            average_loss_value = tf.reduce_mean(val_loss_value)
+            val_loss.append(float(average_loss_value))
+            # free the data assigned to x_batch_val and y_batch_val
+            del x_batch_val
+            del y_batch_val
+
+        avg_val_loss = np.mean(val_loss)
+        if avg_val_loss < best_val_loss:
+            best_val_loss = avg_val_loss
+            patience_counter = 0
+        else:
+            patience_counter += 1
+
+        if patience_counter > patience:
+            print("Early stopping due to no improvement in validation loss")
+            break
+
+        # Display loss at the end of each epoch (scientific notation with 4 decimal places)
+        print("Training loss over epoch: %.4e" % (np.mean(train_loss),))
+        print("Validation loss: %.4e" % (avg_val_loss,))
+
+        # Display metrics at the end of each epoch
+        train_trace_acc = train_trace_metric.result()
+        train_field_acc = train_field_metric.result()
+        print("Training trace acc over epoch: %.4e" % (float(train_trace_acc),))
+        print("Training field acc over epoch: %.4e" % (float(train_field_acc),))
+
+        test_trace_acc = test_trace_metric.result()
+        test_field_acc = test_field_metric.result()
+        print("Validation trace acc: %.4e" % (float(test_trace_acc),))
+        print("Validation field acc: %.4e" % (float(test_field_acc),))
+
+        # Reset metrics at the end of each epoch
+        train_trace_metric.reset_states()
+        train_field_metric.reset_states()
+        test_trace_metric.reset_states()
+        test_field_metric.reset_states()
+
+        mode_epoch_counter += 1 # increase the counter of epochs with the same mode
+
+        
+        if mode == 1:
+            if mode_epoch_counter >= trace_epochs:
+                mode = 0
+                mode_epoch_counter = 0
+                print("Changing mode to field loss...")
+        else:
+            if mode_epoch_counter >= field_epochs:
+                mode = 1
+                mode_epoch_counter = 0
+                print("Changing mode to trace loss...")
+
+            
+
+        # log metrics using wandb.log
+        wandb.log({'Epochs': epoch,
+                   'Train joint loss (trace MSE + field MSE)': np.mean(train_loss),
+                   'Train trace MSE': float(train_trace_acc),
+                   'Train field MSE': float(train_field_acc),
+                   'Test joint loss (trace MSE + field MSE)': np.mean(val_loss),
+                   'Test trace MSE': float(test_trace_acc),
+                   'Test field MSE': float(test_field_acc)
                    })

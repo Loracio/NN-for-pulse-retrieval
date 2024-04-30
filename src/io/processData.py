@@ -7,7 +7,7 @@ def process_data(N, NUMBER_OF_PULSES, pulse_dataset, training_size, BATCH_SIZE, 
     Data is batched and shuffled, dividing it into train and test sets.
 
     Args:
-        N (int): Number of time steps
+        N (int): Number of samples
         NUMBER_OF_PULSES (int): Number of pulses in the database
         pulse_dataset (tf.data.Dataset): Dataset containing the pulses
 
@@ -35,7 +35,7 @@ def process_data_tfrecord(N, NUMBER_OF_PULSES, FILE_PATH, TRAINING_SIZE, BATCH_S
     Read the TFRecord file and process the data.
 
     Args:
-        N (int): Number of time steps
+        N (int): Number of samples
         NUMBER_OF_PULSES (int): Number of pulses in the database
         FILE_PATH (str): Path to the TFRecord file
         TRAINING_SIZE (float): Percentage of the dataset to use for training
@@ -55,6 +55,35 @@ def process_data_tfrecord(N, NUMBER_OF_PULSES, FILE_PATH, TRAINING_SIZE, BATCH_S
 
     return process_data(N, NUMBER_OF_PULSES, pulse_dataset, TRAINING_SIZE, BATCH_SIZE, SHUFFLE_BUFFER_SIZE)
 
+def load_data_from_batches(FILE_PATH, N, NUMBER_OF_PULSES, SHUFFLE_BUFFER_SIZE=None):
+    """
+    Load the data from the TFRecord file that contains one batch of data.
+
+    Args:
+        FILE_PATH (str): Path to the TFRecord file
+        N (int): Number of samples
+        NUMBER_OF_PULSES (int): Number of pulses in the dataset
+        SHUFFLE_BUFFER_SIZE (int): Size of the buffer to use for shuffling the dataset
+
+    Returns:
+        x_batch (tf.Tensor): Tensor containing the SHG-FROG traces
+        y_batch (tf.Tensor): Tensor containing the pulses
+    """
+    pulse_dataset = read_tfrecord(FILE_PATH, N, NUMBER_OF_PULSES, NUMBER_OF_PULSES)
+
+    if SHUFFLE_BUFFER_SIZE is None:
+        SHUFFLE_BUFFER_SIZE = NUMBER_OF_PULSES
+
+    # Select the y and z data from pulse dataset, which contain the SHG-FROG trace and the electric field of the pulse in the time domain
+    x_batch = pulse_dataset.map(lambda x, y, z: y)
+    y_batch = pulse_dataset.map(lambda x, y, z: z)
+
+    # Convert from dataset to tensor
+    x_batch = tf.convert_to_tensor(list(x_batch.as_numpy_iterator()))
+    y_batch = tf.convert_to_tensor(list(y_batch.as_numpy_iterator()))
+
+    return x_batch, y_batch
+
 
 def process_data_tfrecord_noisyTraces(N, NUMBER_OF_PULSES, FILE_PATH, TRAINING_SIZE, BATCH_SIZE, SHUFFLE_BUFFER_SIZE=None):
     """
@@ -62,7 +91,7 @@ def process_data_tfrecord_noisyTraces(N, NUMBER_OF_PULSES, FILE_PATH, TRAINING_S
     Data is batched and shuffled, dividing it into train and test sets.
 
     Args:
-        N (int): Number of time steps
+        N (int): Number of samples
         NUMBER_OF_PULSES (int): Number of pulses in the database
         training_size (float): Percentage of the dataset to use for training
         BATCH_SIZE (int): Size of the batches to use in the dataset

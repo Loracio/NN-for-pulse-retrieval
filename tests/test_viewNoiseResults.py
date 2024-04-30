@@ -67,7 +67,7 @@ if __name__ == '__main__':
     # Define pulse database parameters
     N = 128
     NUMBER_OF_PULSES = 10
-    SNR = 15 # Signal to noise ratio in dB
+    SNR = 10 # Signal to noise ratio in dB
     FILE_PATH = f"./data/generated/N{N}/{NUMBER_OF_PULSES}_randomPulses_N{N}_{SNR}SNR.tfrecords"
     # Handle error if path does not exist
     try:

@@ -66,8 +66,8 @@ if __name__ == '__main__':
 
     # Define pulse database parameters
     N = 128
-    NUMBER_OF_PULSES = 10
-    SNR = 10 # Signal to noise ratio in dB
+    NUMBER_OF_PULSES = 1000
+    SNR = 30 # Signal to noise ratio in dB
     FILE_PATH = f"./data/generated/N{N}/{NUMBER_OF_PULSES}_randomPulses_N{N}_{SNR}SNR.tfrecords"
     # Handle error if path does not exist
     try:
@@ -81,7 +81,7 @@ if __name__ == '__main__':
     train_dataset, test_dataset, train_original_trace_dataset, test_original_trace_dataset, train_retrieved_field_dataset, test_retrieved_field_dataset = process_data_tfrecord_noisyTraces(N, NUMBER_OF_PULSES, FILE_PATH, 0.99, 1)
 
     model = keras.models.load_model(
-        f"./trained_models/CNN/CNN_test_N{N}_normTraces_total_TESTNOISE.tf")
+        f"./trained_models/CNN/CNN_test_N{N}_normTraces_combinedTraining_BIGDB.tf")
 
     # Create fourier utils instance to use its utilities
     ft = fourier_utils(N, 1/N)

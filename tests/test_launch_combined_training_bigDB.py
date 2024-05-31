@@ -27,14 +27,14 @@ from src.visualization import resultsGUI
 if __name__ == "__main__":
     # Define pulse database parameters
     N = 128
-    NUMBER_OF_PULSES = 20000
-    BATCH_SIZE = 1024
+    NUMBER_OF_PULSES = 50000
+    BATCH_SIZE = 512
 
     NUMBER_OF_BATCHES = np.ceil(NUMBER_OF_PULSES / BATCH_SIZE).astype(int)
 
     trainFILENAMES = []
 
-    VALIDATION_PULSES = 1000
+    VALIDATION_PULSES = 5000
     VALIDATION_BATCHES = np.ceil(VALIDATION_PULSES / BATCH_SIZE).astype(int)
 
     validationFILENAMES = []
@@ -49,13 +49,13 @@ if __name__ == "__main__":
     config = {
         'start_with': 0,  # 0 : Start with the field loss, 1 : Start with the trace loss
         'trace_epochs': 250,
-        'field_epochs': 50,
+        'field_epochs': 35,
         'reps': 1,  # Number of repetitions of the combined training
         'batch_size': BATCH_SIZE,
         'log_step': 200,
         'val_log_step': 200,
         'optimizer': 'adam',
-        'learning_rate': 0.001,
+        'learning_rate': 0.005,
         'loss': 'trace_loss',
         'n_conv_layers': 2,  # Number of convolutional layers
         'n_filters_per_layer': 32,  # Number of filters per layer
@@ -66,7 +66,7 @@ if __name__ == "__main__":
         'pool_size': (2, 2),  # Pool size
         'conv_activation': 'relu',  # Activation function for the convolutional layers
         'n_dense_layers': 2,  # Number of dense layers
-        'n_neurons_per_layer': 512,  # Number of neurons per dense layer
+        'n_neurons_per_layer': 1024,  # Number of neurons per dense layer
         # Reduction factor for the number of neurons in each layer in the dense layers
         'reduce_dense_factor': 2,
         'dense_activation': 'relu',  # Activation function for the dense layers
@@ -82,7 +82,7 @@ if __name__ == "__main__":
 
     # Initialize Weights & Biases with the config parameters
     run = wandb.init(project="MSE field vs intensity", config=config,
-                     name='Test BIG DATABASE',)
+                     name='CONV2D + LR',)
 
     # Build the model with the config
     if config['arquitecture'] == 'MultiResNet':

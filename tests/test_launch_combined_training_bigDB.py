@@ -16,7 +16,6 @@ import tensorflow as tf
 from tensorflow import keras
 
 import wandb
-from wandb.keras import WandbCallback
 
 import path_helper
 
@@ -28,7 +27,7 @@ if __name__ == "__main__":
     # Define pulse database parameters
     N = 128
     NUMBER_OF_PULSES = 50000
-    BATCH_SIZE = 512
+    BATCH_SIZE = 128
 
     NUMBER_OF_BATCHES = np.ceil(NUMBER_OF_PULSES / BATCH_SIZE).astype(int)
 
@@ -48,16 +47,16 @@ if __name__ == "__main__":
     # Define config parameters for wandb
     config = {
         'start_with': 0,  # 0 : Start with the field loss, 1 : Start with the trace loss
-        'trace_epochs': 250,
-        'field_epochs': 35,
+        'trace_epochs': 150,
+        'field_epochs': 50,
         'reps': 1,  # Number of repetitions of the combined training
         'batch_size': BATCH_SIZE,
         'log_step': 200,
         'val_log_step': 200,
         'optimizer': 'adam',
-        'learning_rate': 0.005,
+        'learning_rate': 0.001,
         'loss': 'trace_loss',
-        'n_conv_layers': 2,  # Number of convolutional layers
+        'n_conv_layers': 1,  # Number of convolutional layers
         'n_filters_per_layer': 32,  # Number of filters per layer
         # Reduction factor for the number of filters in each layer
         'reduce_filter_factor': 0.25,
@@ -70,7 +69,7 @@ if __name__ == "__main__":
         # Reduction factor for the number of neurons in each layer in the dense layers
         'reduce_dense_factor': 2,
         'dense_activation': 'relu',  # Activation function for the dense layers
-        'dropout': 0.05,  # Dropout rate, if None, no dropout is used
+        'dropout': None,  # Dropout rate, if None, no dropout is used
         'patience': 100,  # Patience for the early stopping
         'validation_pulses': VALIDATION_PULSES,
         'database': f'{NUMBER_OF_PULSES}_randomPulses_N{N}',
@@ -82,7 +81,7 @@ if __name__ == "__main__":
 
     # Initialize Weights & Biases with the config parameters
     run = wandb.init(project="MSE field vs intensity", config=config,
-                     name='CONV2D + LR',)
+                     name='TEST BN 1 CONVLAYER',)
 
     # Build the model with the config
     if config['arquitecture'] == 'MultiResNet':
@@ -148,4 +147,4 @@ if __name__ == "__main__":
 
     # Save the model using tensorflow save method
     model.save(
-        f"./trained_models/CNN/{config['arquitecture']}_test_N{N}_normTraces_combinedTraining_BIGDB.tf")
+        f"./trained_models/CNN/{config['arquitecture']}_test_N{N}_normTraces_combinedTraining_BIGDB_1.tf")

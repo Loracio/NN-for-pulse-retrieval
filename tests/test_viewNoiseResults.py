@@ -26,7 +26,7 @@ import scienceplots
 
 plt.style.use('science')
 plt.rcParams.update({'font.size': 16})
-plt.rcParams['figure.figsize'] = [6, 4]
+plt.rcParams['figure.figsize'] = [11.69,8.27]
 plt.rcParams['legend.frameon'] = True
 plt.rcParams['legend.fancybox'] = True
 plt.rcParams['axes.grid'] = True
@@ -35,14 +35,45 @@ plt.rcParams['grid.linestyle'] = '--'
 plt.rcParams['grid.linewidth'] = 0.5
 plt.rcParams['axes.axisbelow'] = True
 
-def field_error(E_real, E_predicted):
-    # Calculate the dot products
-    dot_real_real = tf.abs(tf.tensordot(E_real, tf.math.conj(E_real), axes=1))
-    dot_predicted_predicted = tf.abs(tf.tensordot(E_predicted, tf.math.conj(E_predicted), axes=1))
-    dot_real_predicted = tf.abs(tf.tensordot(E_real, tf.math.conj(E_predicted), axes=1))
+# def field_error(E_real, E_predicted):
+#     # Calculate the dot products
+#     dot_real_real = tf.abs(tf.tensordot(E_real, tf.math.conj(E_real), axes=1))
+#     dot_predicted_predicted = tf.abs(tf.tensordot(E_predicted, tf.math.conj(E_predicted), axes=1))
+#     dot_real_predicted = tf.abs(tf.tensordot(E_real, tf.math.conj(E_predicted), axes=1))
 
-    # Calculate the error
-    error = tf.acos(dot_real_predicted / tf.sqrt(dot_real_real * dot_predicted_predicted))
+#     # Calculate the error
+#     error = tf.acos(dot_real_predicted / tf.sqrt(dot_real_real * dot_predicted_predicted))
+
+#     return error
+
+
+# def intensity_error(I_real, I_predicted):
+#     # Calculate the absolute differences
+#     absolute_differences = tf.abs(I_real - I_predicted)
+
+#     # Calculate the sum of the absolute differences
+#     sum_absolute_differences = tf.reduce_sum(absolute_differences)
+
+#     # Calculate the sum of the absolute real intensities
+#     sum_absolute_real = tf.reduce_sum(tf.abs(I_real))
+
+#     # Calculate the error
+#     error = tf.divide(sum_absolute_differences, sum_absolute_real)
+
+#     return error
+
+def field_error(E_real, E_predicted):
+    # Convert E_real and E_predicted to numpy arrays
+    E_real = E_real.numpy()
+    E_predicted = E_predicted.numpy()
+
+    # Normalize E_predicted
+    E_predicted = E_predicted / np.max(np.abs(E_predicted))
+
+    # Compute the element-wise difference in absolute value
+    absolute_differences = np.abs(E_real - E_predicted)
+    # Divide by the length of the array
+    error = np.sum(absolute_differences) / len(E_real)
 
     return error
 
@@ -67,7 +98,7 @@ if __name__ == '__main__':
     # Define pulse database parameters
     N = 128
     NUMBER_OF_PULSES = 1000
-    SNR = 30 # Signal to noise ratio in dB
+    SNR = 50 # Signal to noise ratio in dB
     FILE_PATH = f"./data/generated/N{N}/{NUMBER_OF_PULSES}_randomPulses_N{N}_{SNR}SNR.tfrecords"
     # Handle error if path does not exist
     try:
@@ -82,6 +113,9 @@ if __name__ == '__main__':
 
     model = keras.models.load_model(
         f"./trained_models/CNN/CNN_test_N{N}_normTraces_combinedTraining_BIGDB.tf")
+
+    # Print model summary
+    model.summary()
 
     # Create fourier utils instance to use its utilities
     ft = fourier_utils(N, 1/N)
@@ -304,7 +338,7 @@ if __name__ == '__main__':
         Ierror = intensity_error(original_trace, retrieved_trace)
 
         ax[1][0].imshow(retrieved_trace, cmap='nipy_spectral', aspect='auto')
-        ax[1][0].set_title(rf"COPRA retrieved trace $\delta$I = {Ierror:.2f}")
+        ax[1][0].set_title(rf"COPRA retrieved trace R = {Ierror:.2f}")
         ax[1][0].grid(False)
         # Unset xticks and yticks
         ax[1][0].set_xticks([])
@@ -319,7 +353,7 @@ if __name__ == '__main__':
         Ierror = intensity_error(original_trace, predicted_trace)
 
         ax[2][0].imshow(predicted_trace, cmap='nipy_spectral', aspect='auto')
-        ax[2][0].set_title(rf"NN predicted trace $\delta$I = {Ierror:.2f}")
+        ax[2][0].set_title(rf"NN predicted trace R = {Ierror:.2f}")
         ax[2][0].grid(False)
         # Unset xticks and yticks
         ax[2][0].set_xticks([])
@@ -329,9 +363,27 @@ if __name__ == '__main__':
         ax[2][0].set_ylabel("Time")
 
         # Set all aspects to equal
-        for i in range(3):
+        for k in range(3):
             for j in range(2):
-                ax[i][j].set_aspect('auto')
+                ax[k][j].set_aspect('auto')
 
         plt.tight_layout()
-        plt.show()
+
+        # Save the figure
+        # plt.savefig(f"/home/vloras/Escritorio/SNR_{SNR}_NN_vs_COPRA_N{N}.png", dpi=600)
+
+        # Save predicted pulse in a txt with the following format:
+        # each row has the real and imaginary values separated by a tab
+        real_predicted_field = np.real(predicted_pulse)
+        imag_predicted_field = np.imag(predicted_pulse)
+        np.savetxt(f"/home/vloras/Escritorio/pulses/predicted_pulse_{i}.txt", np.column_stack((real_predicted_field, imag_predicted_field)), delimiter='\t')
+
+        # Save original pulse with same format
+        real_original_field = np.real(pulse)
+        imag_original_field = np.imag(pulse)
+        np.savetxt(f"/home/vloras/Escritorio/pulses/original_pulse_{i}.txt", np.column_stack((real_original_field, imag_original_field)), delimiter='\t')
+
+        # Save the original trace in a txt. Each file contains the trace in a single row
+        np.savetxt(f"/home/vloras/Escritorio/pulses/original_trace_{i}.txt", noisy_trace, delimiter='\t')
+
+        # plt.show()

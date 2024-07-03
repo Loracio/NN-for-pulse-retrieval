@@ -185,7 +185,7 @@ def read_tfrecord(FILE_PATH, N, NUMBER_OF_PULSES, BATCH_SIZE, add_noise=False, n
     tbp_dataset = tf.data.Dataset.from_tensor_slices([])
     field_dataset = tf.data.Dataset.from_tensor_slices([])
 
-    for tbp, real_field, imag_field in parsed_dataset:
+    for  tbp, real_field, imag_field in parsed_dataset:
         
         # Save the TBP in the tbp_dataset
         tbp_dataset = tbp_dataset.concatenate(

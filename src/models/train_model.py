@@ -554,6 +554,8 @@ def train_combined_loss_training(train_dataset, test_dataset, model, optimizer, 
         val_loss = []
 
         # Iterate over the batches of the dataset
+        # Shuffle the train dataset order for training step
+        train_dataset = train_dataset.shuffle(1000)
         for step, (x_batch_train, y_batch_train) in enumerate(train_dataset):
             loss_value = train_step_combined_loss_training(x_batch_train, y_batch_train,
                                     model, optimizer, mode, trace_loss_fn, field_loss_fn, train_trace_metric, train_field_metric)

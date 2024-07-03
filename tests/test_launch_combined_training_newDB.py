@@ -59,9 +59,9 @@ if __name__ == "__main__":
         # Reduction factor for the number of neurons in each layer in the dense layers
         'reduce_dense_factor': 2,
         'dense_activation': 'relu',  # Activation function for the dense layers
-        'dropout': 0.05,  # Dropout rate, if None, no dropout is used
+        'dropout': None,  # Dropout rate, if None, no dropout is used
         'patience': 100,  # Patience for the early stopping
-        'training_size': 0.9,
+        'training_size': 0.8,
         'database': f'{NUMBER_OF_PULSES}_randomPulses_N{N}',
         'arquitecture': 'CNN',  # 'MultiResNet', 'DenseNet', 'CNN
         # The number of channels is the last element of the input shape
@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
     # Initialize Weights & Biases with the config parameters
     run = wandb.init(project="MSE field vs intensity", config=config,
-                     name='Combined training',)
+                     name='TEST BN 1 CONV2D',)
 
     # Build the model with the config
     if config['arquitecture'] == 'MultiResNet':

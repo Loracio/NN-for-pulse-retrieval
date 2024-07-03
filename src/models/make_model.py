@@ -83,23 +83,45 @@ def CNN(input_shape, output_shape, n_conv_layers, n_filters_per_layer, reduce_fi
     """
     inputs = keras.Input(shape=input_shape, name="input")
     # Add the convolutional layers given by the arguments
-    conv_layer = keras.layers.Conv2D(n_filters_per_layer, kernel_size, activation=conv_activation)(inputs)
+    conv_layer = keras.layers.Conv2D(n_filters_per_layer, kernel_size, activation=None)(inputs)
+    # Add batch normalization
+    conv_layer = keras.layers.BatchNormalization()(conv_layer)
+    # Add conv activation
+    conv_layer = keras.layers.Activation(conv_activation)(conv_layer)
     if pool:
-        conv_layer = keras.layers.MaxPooling2D(pool_size=pool_size)(conv_layer)
+        conv_layer = keras.layers.AveragePooling2D(pool_size=pool_size)(conv_layer)
+
     for i in range(n_conv_layers - 1):
         # Reduction factor is applied to the number of filters in each layer
-        conv_layer = keras.layers.Conv2D(n_filters_per_layer // (reduce_filter_factor * (i + 1)), kernel_size, activation=conv_activation)(conv_layer)
+        conv_layer = keras.layers.Conv2D(n_filters_per_layer // (reduce_filter_factor * (i + 1)), kernel_size, activation=None)(conv_layer)
+        # Add batch normalization
+        conv_layer = keras.layers.BatchNormalization()(conv_layer)
+        # Add conv activation
+        conv_layer = keras.layers.Activation(conv_activation)(conv_layer)
         if pool:
-            conv_layer = keras.layers.MaxPooling2D(pool_size=pool_size)(conv_layer)
+            conv_layer = keras.layers.AveragePooling2D(pool_size=pool_size)(conv_layer)
+
+
     flatten_layer = keras.layers.Flatten()(conv_layer)
     # Add the dense layers given by the arguments
-    dense_layer = keras.layers.Dense(n_neurons_per_layer, activation=dense_activation)(flatten_layer)
+    dense_layer = keras.layers.Dense(n_neurons_per_layer, activation=None)(flatten_layer)
+    # Add batch normalization
+    dense_layer = keras.layers.BatchNormalization()(dense_layer)
+    # Add dense activation
+    dense_layer = keras.layers.Activation(dense_activation)(dense_layer)
+
     # Only add dropout if dropout is not None
     if dropout is not None:
             dense_layer = keras.layers.Dropout(dropout)(dense_layer)
     for i in range(n_dense_layers - 1):
         # Reduction factor is applied to the number of neurons in each layer
-        dense_layer = keras.layers.Dense(n_neurons_per_layer // (reduce_dense_factor * (i + 1)), activation=dense_activation)(dense_layer)
+        dense_layer = keras.layers.Dense(n_neurons_per_layer // (reduce_dense_factor * (i + 1)), activation=None)(dense_layer)
+
+        # Add batch normalization
+        dense_layer = keras.layers.BatchNormalization()(dense_layer)
+        # Add dense activation
+        dense_layer = keras.layers.Activation(dense_activation)(dense_layer)
+
         # Only add dropout if dropout is not None
         if dropout is not None:
             dense_layer = keras.layers.Dropout(dropout)(dense_layer)

@@ -354,44 +354,60 @@ class resultsGUI():
 
         if self.phase_blanking:
             predicted_field_phase = np.where(
-                I_true_field < self.phase_blanking_threshold, np.nan, predicted_field_phase)
+                I_predicted_field < self.phase_blanking_threshold * 300, np.nan, predicted_field_phase)
             predicted_spectrum_phase = np.where(
-                I_true_spectrum < self.phase_blanking_threshold, np.nan, predicted_spectrum_phase)
+                I_predicted_spectrum < self.phase_blanking_threshold * 300, np.nan, predicted_spectrum_phase)
             true_field_phase = np.where(
                 I_true_field < self.phase_blanking_threshold, np.nan, true_field_phase)
             true_spectrum_phase = np.where(
                 I_true_spectrum < self.phase_blanking_threshold, np.nan, true_spectrum_phase)
 
-        self.line_I_true_field, = self.ax3.plot(
-            self.t, I_true_field, color='blue', linewidth=3, alpha=0.5, label='True field intensity')
-        self.line_true_field_phase, = self.twin_ax3.plot(
-            self.t, true_field_phase, '-.', color='red', alpha=0.5)
-        self.ax3.plot(np.nan, '-.', label='True phase', color='red')
+        
         self.line_I_predicted_field, = self.ax3.plot(
-            self.t, I_predicted_field, color='orange', label='Predicted field intensity')
+            self.t, I_predicted_field, color='royalblue',linewidth=3, label='Predicted field intensity')
         self.line_predicted_field_phase, = self.twin_ax3.plot(
-            self.t, predicted_field_phase, '-.', color='violet')
-        self.ax3.plot(np.nan, '-.', label='Predicted phase', color='violet')
+            self.t, predicted_field_phase, '-.', linewidth=3, color='red')
+        self.ax3.plot(np.nan, '-.', label='Predicted phase', color='red')
+        self.line_I_true_field, = self.ax3.plot(
+            self.t, I_true_field, color='black', alpha=1, label='True field intensity')
+        self.line_true_field_phase, = self.twin_ax3.plot(
+            self.t, true_field_phase, '-.', color='black', alpha=1)
+        self.ax3.plot(np.nan, '-.', label='True phase', color='black')
         self.ax3.set_xlabel("Time")
         self.ax3.set_ylabel("Intensity")
+        # set y axis as blue color
+        self.ax3.yaxis.label.set_color('blue')
+        # also the label in blue color y axis
+        self.ax3.yaxis.label.set_color('blue')
+        # twin ax color in red
+        self.twin_ax3.yaxis.label.set_color('red')
+
         self.twin_ax3.set_ylabel("Phase")
         self.ax3.set_title("Time domain")
         self.ax3.grid()
         self.twin_ax3.set_ylim(-1.25 * 2 * np.pi, 1.25 * 2 * np.pi)
 
-        self.line_I_true_spectrum, = self.ax4.plot(
-            self.omega, I_true_spectrum, color='blue', linewidth=3, alpha=0.5, label='True spectral intensity')
-        self.line_true_spectrum_phase, = self.twin_ax4.plot(
-            self.omega, true_spectrum_phase, '-.', color='red', alpha=0.5)
-        self.ax4.plot(np.nan, '-.', label='True spectral phase', color='red')
+        
         self.line_I_predicted_spectrum, = self.ax4.plot(
-            self.omega, I_predicted_spectrum, color='orange', label='Predicted spectral intensity')
+            self.omega, I_predicted_spectrum, color='royalblue',linewidth=3, label='Predicted spectral intensity')
         self.line_predicted_spectrum_phase, = self.twin_ax4.plot(
-            self.omega, predicted_spectrum_phase, '-.', color='violet')
+            self.omega, predicted_spectrum_phase, '-.',linewidth=3, color='red')
         self.ax4.plot(
-            np.nan, '-.', label='Predicted spectral phase', color='violet')
+            np.nan, '-.', label='Predicted spectral phase', color='red')
+        self.line_I_true_spectrum, = self.ax4.plot(
+            self.omega, I_true_spectrum, color='black', alpha=1, label='True spectral intensity')
+        self.line_true_spectrum_phase, = self.twin_ax4.plot(
+            self.omega, true_spectrum_phase, '-.', color='black', alpha=1)
+        self.ax4.plot(np.nan, '-.', label='True spectral phase', color='black')
         self.ax4.set_xlabel("Frequency")
         self.ax4.set_ylabel("Intensity")
+        # set y axis as blue color
+        self.ax4.yaxis.label.set_color('blue')
+        # also the label in blue color y axis
+        self.ax4.yaxis.label.set_color('blue')
+        # twin ax color in red
+        self.twin_ax4.yaxis.label.set_color('red')
+        self.twin_ax4.yaxis.label.set_color('red')
         self.twin_ax4.set_ylabel("Phase")
         self.ax4.set_title("Frequency domain")
         self.ax4.grid()
@@ -569,9 +585,9 @@ class resultsGUI():
 
         if self.phase_blanking:
             predicted_field_phase = np.where(
-                I_true_field < self.phase_blanking_threshold, np.nan, predicted_field_phase)
+                I_predicted_field < self.phase_blanking_threshold * 300, np.nan, predicted_field_phase)
             predicted_spectrum_phase = np.where(
-                I_true_spectrum < self.phase_blanking_threshold, np.nan, predicted_spectrum_phase)
+                I_predicted_spectrum < self.phase_blanking_threshold * 300, np.nan, predicted_spectrum_phase)
             true_field_phase = np.where(
                 I_true_field < self.phase_blanking_threshold, np.nan, true_field_phase)
             true_spectrum_phase = np.where(
